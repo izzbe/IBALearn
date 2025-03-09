@@ -8,11 +8,14 @@
 #define IBATENSOR_H
 class Tensor {
     std::vector<float> data;
-    std::vector<float> size;
-    std::vector<float> stride;
+    std::vector<int> size;
+    std::vector<int> stride;
+    std::vector<int> shape;
 
 public:
-    Tensor(std::vector<float> values, std::vector<int> shape);
+    Tensor();
+    Tensor(const std::vector<int>& shape);
+    Tensor(const std::vector<int>& shape, std::vector<float> values);
     int index(std::vector<int> indices) const;
     float get(std::vector<int> indices) const;
     void set(std::vector<int> indices, float value);
