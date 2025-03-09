@@ -12,6 +12,7 @@ PYBIND11_MODULE(ibatensor, m) {
         .def(py::init<>())
         .def(py::init<const std::vector<int>&>())
         .def(py::init([](py::array_t<float> array) {
+            // cast python array to vector<float>
             py::buffer_info buf = array.request();
             std::vector<int> shape;
             for (auto dim : buf.shape) {
@@ -22,15 +23,4 @@ PYBIND11_MODULE(ibatensor, m) {
 
             return new ibatensor::Tensor(shape, data);
         }));
-        // .def("__repr__", [](const ibatensor::Tensor& self) {
-        //     std::stringstream ss;
-        //     ss << "Tensor(shape=[";
-        //     const auto& shape = self.shape();
-        //     for (size_t i = 0; i < shape.size(); ++i) {
-        //         ss << shape[i];
-        //         if (i < shape.size() - 1) ss << ", ";
-        //     }
-        //     ss << "])";
-        //     return ss.str();
-        // });
 }

@@ -25,53 +25,57 @@ namespace ibatensor {
             data = values;
         }
     }
-}
 
-Tensor::Iterator::Iterator(std::vector<int> dim_order, Tensor &T, bool end) :
-                                                                cur_loc({0, 0, 0, 0}),
-                                                                dim_order(std::move(dim_order)),
-                                                                T(T),
-                                                                shape(T.shape),
-                                                                stride_sizes(T.stride)
-{
-    int last_dim = dim_order[dim_order.size() - 1];
-    if (end == true) {
-        cur_loc[last_dim] = shape[last_dim];
+    float& Tensor::get(std::vector<int> indices) {
+        return data[0];
     }
-}
 
-void Tensor::Iterator::operator++() {
-    int total_dims = dim_order.size();
-    for (int dim = 0; dim < total_dims; dim++) {
-        int dim_total_size = shape[dim];
-
-        cur_loc[dim]++;
-
-        if (cur_loc[dim] == dim_total_size && dim != total_dims - 1) {
-            cur_loc[dim] == 0;
-        } else {
-            return;
+    Tensor::Iterator::Iterator(std::vector<int> dim_order, Tensor &T, bool end) :
+                                                                    cur_loc({0, 0, 0, 0}),
+                                                                    dim_order(std::move(dim_order)),
+                                                                    T(T),
+                                                                    shape(T.shape),
+                                                                    stride_sizes(T.stride)
+    {
+        int last_dim = dim_order[dim_order.size() - 1];
+        if (end == true) {
+            cur_loc[last_dim] = shape[last_dim];
         }
     }
-}
 
-float &Tensor::Iterator::operator*() {
-    return T.get(cur_loc);
-}
+    void Tensor::Iterator::operator++() {
+        int total_dims = dim_order.size();
+        for (int dim = 0; dim < total_dims; dim++) {
+            int dim_total_size = shape[dim];
 
-bool Tensor::Iterator::operator==(const Iterator &other) const {
-    return (&other.T == &T) && (other.cur_loc == cur_loc);
-}
+            cur_loc[dim]++;
 
-bool Tensor::Iterator::operator!=(const Iterator &other) const {
-    return !Tensor::Iterator::operator==(other);
-}
+            if (cur_loc[dim] == dim_total_size && dim != total_dims - 1) {
+                cur_loc[dim] == 0;
+            } else {
+                return;
+            }
+        }
+    }
 
-Tensor::Iterator Tensor::begin(std::vector<int> stride_order) {
-    return {std::move(stride_order), *this};
-}
+    float &Tensor::Iterator::operator*() {
+        return T.get(cur_loc);
+    }
 
-Tensor::Iterator Tensor::end(std::vector<int> stride_order) {
-    return {std::move(stride_order), *this, true};
-}
+    bool Tensor::Iterator::operator==(const Iterator &other) const {
+        return (&other.T == &T) && (other.cur_loc == cur_loc);
+    }
 
+    bool Tensor::Iterator::operator!=(const Iterator &other) const {
+        return !Tensor::Iterator::operator==(other);
+    }
+
+    Tensor::Iterator Tensor::begin(std::vector<int> stride_order) {
+        return {std::move(stride_order), *this};
+    }
+
+    Tensor::Iterator Tensor::end(std::vector<int> stride_order) {
+        return {std::move(stride_order), *this, true};
+    }
+
+}
