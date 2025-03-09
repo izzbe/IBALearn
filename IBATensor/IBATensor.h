@@ -12,12 +12,27 @@ class Tensor {
     std::vector<int> stride;
     std::vector<int> shape;
 
+    class Iterator {
+        std::vector<int> cur_loc;
+        const std::vector<int> dim_order;
+        Tensor &T;
+        std::vector<int> shape;
+        std::vector<int> stride_sizes;
+        Iterator(std::vector<int> dim_order, Tensor &T, bool end = false);
+        friend class Tensor;
+    public:
+        void operator++();
+        float &operator*();
+        bool operator==(const Iterator &other) const;
+        bool operator!=(const Iterator &other) const;
+    };
+
 public:
     Tensor();
     Tensor(const std::vector<int>& shape);
     Tensor(const std::vector<int>& shape, std::vector<float> values);
     int index(std::vector<int> indices) const;
-    float get(std::vector<int> indices) const;
+    float &get(std::vector<int> indices);
     void set(std::vector<int> indices, float value);
     void print_shape() const;
 
@@ -27,6 +42,9 @@ public:
     Tensor operator-(Tensor other); //element wise subtraction
 
     Tensor apply(Tensor other, float (*func)(float));
+
+    Tensor::Iterator begin(std::vector<int> stride_order);
+    Tensor::Iterator end(std::vector<int> stride_order);
 
 };
 
