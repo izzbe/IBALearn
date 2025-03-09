@@ -7,9 +7,9 @@
 #ifndef IBATENSOR_H
 #define IBATENSOR_H
 class Tensor {
-    std::vector<float>;
-    std::vector<size>;
-    std::vector<stride>;
+    std::vector<float> data;
+    std::vector<float> size;
+    std::vector<float> stride;
 
 public:
     Tensor(std::vector<float> values, std::vector<int> shape);
