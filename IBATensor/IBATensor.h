@@ -6,11 +6,15 @@
 
 #ifndef IBATENSOR_H
 #define IBATENSOR_H
+
+namespace ibatensor{
+
 class Tensor {
+    public:
     std::vector<float> data;
-    std::vector<int> size;
+    int size; // total elements
     std::vector<int> stride;
-    std::vector<int> shape;
+    std::vector<int> shape; 
 
 public:
     Tensor();
@@ -29,5 +33,7 @@ public:
     Tensor apply(Tensor other, float (*func)(float));
 
 };
+
+}
 
 #endif //IBATENSOR_H
