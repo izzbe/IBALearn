@@ -6,11 +6,15 @@
 
 #ifndef IBATENSOR_H
 #define IBATENSOR_H
+
+namespace ibatensor{
+
 class Tensor {
+    public:
     std::vector<float> data;
-    std::vector<int> size;
+    int size; // total elements
     std::vector<int> stride;
-    std::vector<int> shape;
+    std::vector<int> shape; 
 
     class Iterator {
         std::vector<int> cur_loc;
@@ -47,5 +51,7 @@ public:
     Tensor::Iterator end(std::vector<int> stride_order);
 
 };
+
+}
 
 #endif //IBATENSOR_H
