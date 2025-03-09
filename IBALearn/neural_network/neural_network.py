@@ -3,6 +3,10 @@ import pandas as pd
 import math
 from abc import ABC, abstractmethod
 
+class Tensor:
+    def __init__(self, *args):
+        return
+
 class Layer(ABC):
 
     @abstractmethod
@@ -18,15 +22,15 @@ class Layer(ABC):
         pass
 
 class Linear(Layer):
-    def __init__(self, indim, outdim):
-        weights = None # should be (n, indim) (indim, outdim)
-        bias = None
+    def __init__(self, indim : int, outdim : int):
+        self.weights = np.random.rand(outdim, indim)
+        self.bias = np.random.rand(outdim)
 
     def forward(self, X):
-        return self.weights @ X + self.bias
+        return self.weights.T @ X + self.bias
 
     def backward(self):
-        return None;
+        return
 
 class ReLU(Layer):
     def __init__(self):
