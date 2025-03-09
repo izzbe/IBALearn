@@ -3,4 +3,6 @@ project(IBATensor)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(IBATensor main.cpp)
+add_executable(IBATensor main.cpp
+        IBATensor.cpp
+        IBATensor.h)
