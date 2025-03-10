@@ -7,6 +7,22 @@
 #include <iostream>
 
 namespace ibatensor {
+    std::vector<int> range(int size, int start = 0) {
+        std::vector<int> vec;
+        for (int i = start; i < size; ++i) {
+            vec.push_back(i);
+        }
+        return vec;
+    }
+
+    std::vector<int> values(int val, int size) {
+        std::vector<int> vec;
+        for (int i = 0; i < size; ++i) {
+            vec.push_back(val);
+        }
+        return vec;
+    }
+
     Tensor::Tensor() : size(0) {}
 
     Tensor::Tensor(const std::vector<int>& shape) : shape(shape) {
@@ -97,13 +113,23 @@ namespace ibatensor {
             std::cout << "3+ dimensional tensor print not yet implemented" << std::endl;
     }
 
-    Tensor::Iterator::Iterator(std::vector<int> dim_order, Tensor &T, bool end) :
+    Tensor::Iterator::Iterator(Tensor &T, bool end, std::vector<int> slice, std::vector<int> dim_order) :
                                                                     cur_loc({0, 0, 0, 0}),
-                                                                    dim_order(std::move(dim_order)),
                                                                     T(T),
                                                                     shape(T.shape),
-                                                                    stride_sizes(T.stride)
+                                                                    stride_sizes(T.stride),
+                                                                    dim_order(),
+                                                                    slice{std::move(slice)}
     {
+
+        for (int i = 0; i < slice.size(); i++) {
+            if (slice[i] != -1) {
+                cur_loc[i] = slice[i];
+            } else if (dim_order.empty()) {
+                dim_order.push_back(i);
+            }
+        }
+
         int last_dim = dim_order[dim_order.size() - 1];
         if (end == true) {
             cur_loc[last_dim] = shape[last_dim];
