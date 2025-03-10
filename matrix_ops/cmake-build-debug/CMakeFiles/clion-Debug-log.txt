@@ -1,0 +1,50 @@
+"C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2024.3.4/bin/ninja/win/x64/ninja.exe" -DCMAKE_MT=C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\mt.exe -G Ninja -S D:\Uwaterloo2024\IBA_ML\matrix_ops -B D:\Uwaterloo2024\IBA_ML\matrix_ops\cmake-build-debug
+CMake Warning:
+  Ignoring extra path from command line:
+
+   "D:/Uwaterloo2024/IBA_ML/matrix_ops/cmake-build-debug/Files"
+
+
+CMake Warning:
+  Ignoring extra path from command line:
+
+   "Kits\10\bin\10.0.22621.0\x64\mt.exe"
+
+
+-- The CUDA compiler identification is NVIDIA 12.6.20
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - failed
+-- Check for working CUDA compiler: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin/nvcc.exe
+-- Check for working CUDA compiler: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin/nvcc.exe - broken
+CMake Error at C:/Program Files/JetBrains/CLion 2024.3.4/bin/cmake/win/x64/share/cmake-3.30/Modules/CMakeTestCUDACompiler.cmake:59 (message):
+  The CUDA compiler
+
+    "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin/nvcc.exe"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: 'D:/Uwaterloo2024/IBA_ML/matrix_ops/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-slzk4i'
+    
+    Run Build Command(s): "C:/Program Files/JetBrains/CLion 2024.3.4/bin/ninja/win/x64/ninja.exe" -v cmTC_504e6
+    [1/2] "C:\PROGRA~1\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -forward-unknown-to-host-compiler   -D_WINDOWS -Xcompiler=" /EHsc"  -Xcompiler=" -Ob0 -Od /RTC1" "--generate-code=arch=compute_52,code=[compute_52,sm_52]" -Xcompiler=-MDd -Xcompiler=-Zi -MD -MT CMakeFiles\cmTC_504e6.dir\main.cu.obj -MF CMakeFiles\cmTC_504e6.dir\main.cu.obj.d -x cu -c D:\Uwaterloo2024\IBA_ML\matrix_ops\cmake-build-debug\CMakeFiles\CMakeScratch\TryCompile-slzk4i\main.cu -o CMakeFiles\cmTC_504e6.dir\main.cu.obj -Xcompiler=-FdCMakeFiles\cmTC_504e6.dir\,-FS
+    main.cu
+    tmpxft_00005c44_00000000-10_main.cudafe1.cpp
+    [2/2] C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_504e6.dir --rc=rc --mt=C:\Program --manifests  -- "C:\PROGRA~1\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\bin\Hostx64\x64\link.exe" /nologo CMakeFiles\cmTC_504e6.dir\main.cu.obj  /out:cmTC_504e6.exe /implib:cmTC_504e6.lib /pdb:cmTC_504e6.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
+    FAILED: cmTC_504e6.exe 
+    C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_504e6.dir --rc=rc --mt=C:\Program --manifests  -- "C:\PROGRA~1\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.43.34808\bin\Hostx64\x64\link.exe" /nologo CMakeFiles\cmTC_504e6.dir\main.cu.obj  /out:cmTC_504e6.exe /implib:cmTC_504e6.lib /pdb:cmTC_504e6.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
+    RC Pass 1: command "rc /fo CMakeFiles\cmTC_504e6.dir/manifest.res CMakeFiles\cmTC_504e6.dir/manifest.rc" failed (exit code 0) with the following output:
+    no such file or directory
+    ninja: build stopped: subcommand failed.
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
