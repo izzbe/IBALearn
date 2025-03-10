@@ -36,9 +36,11 @@ public:
     Tensor(const std::vector<int>& shape);
     Tensor(const std::vector<int>& shape, std::vector<float> values);
     int index(std::vector<int> indices) const;
-    float &get(std::vector<int> indices);
+    float& get(std::vector<int> indices);
+    float get(std::vector<int> indices) const;
     void set(std::vector<int> indices, float value);
     void print_shape() const;
+    void print() const;
 
     Tensor operator*(Tensor other);
     Tensor operator+(Tensor other); //element wise addition
