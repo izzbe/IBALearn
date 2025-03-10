@@ -96,12 +96,20 @@ namespace ibatensor {
         return !Tensor::Iterator::operator==(other);
     }
 
-    Tensor::Iterator Tensor::begin(std::vector<int> stride_order) {
-        return {std::move(stride_order), *this};
+    Tensor::Iterator Tensor::begin() {
+        return Iterator(*this);
     }
 
-    Tensor::Iterator Tensor::end(std::vector<int> stride_order) {
-        return {std::move(stride_order), *this, true};
+    Tensor::Iterator Tensor::end() {
+        return Iterator(*this, true);
+    }
+
+    Tensor::Iterator Tensor::begin(std::vector<int> slice, std::vector<int> dim_order) {
+        return Iterator(*this, false, std::move(slice), std::move(dim_order));
+    }
+
+    Tensor::Iterator Tensor::end(std::vector<int> slice, std::vector<int> dim_order) {
+        return Iterator(*this, true, std::move(slice), std::move(dim_order));
     }
 
 }

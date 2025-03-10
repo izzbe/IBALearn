@@ -55,8 +55,11 @@ namespace ibatensor{
 
         Tensor apply(Tensor other, float (*func)(float));
 
-        Tensor::Iterator begin(std::vector<int> stride_order);
-        Tensor::Iterator end(std::vector<int> stride_order);
+        Tensor::Iterator begin();
+        Tensor::Iterator end();
+
+        Tensor::Iterator begin(std::vector<int> slice, std::vector<int> dim_order = {});
+        Tensor::Iterator end(std::vector<int> slice, std::vector<int> dim_order = {});
 
     };
 
