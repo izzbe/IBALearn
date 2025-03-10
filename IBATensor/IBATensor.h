@@ -43,9 +43,11 @@ namespace ibatensor{
         Tensor(const std::vector<int>& shape);
         Tensor(const std::vector<int>& shape, std::vector<float> values);
         int index(std::vector<int> indices) const;
-        float &get(std::vector<int> indices);
+        float& get(std::vector<int> indices);
+        float get(std::vector<int> indices) const;
         void set(std::vector<int> indices, float value);
         void print_shape() const;
+        void print() const;
 
         std::vector<Tensor> split();
         Tensor operator*(Tensor other);

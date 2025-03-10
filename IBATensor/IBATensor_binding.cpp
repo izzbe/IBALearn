@@ -22,5 +22,13 @@ PYBIND11_MODULE(ibatensor, m) {
             std::vector<float> data(data_ptr, data_ptr + buf.size);
 
             return new ibatensor::Tensor(shape, data);
-        }));
+        }))
+        // todo: add shape, stride, and size const getters in IBAtensor.h
+        // .def("shape", &ibatensor::Tensor::shape) 
+        // .def("stride", &ibatensor::Tensor::stride)
+        // .def("size", &ibatensor::Tensor::size)
+        .def("print", &ibatensor::Tensor::print);
+        // .def("get", [](ibatensor::Tensor& self, std::vector<int> indices) {
+        //     return self.get(indicies);
+        // });
 }
