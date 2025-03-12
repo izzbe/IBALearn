@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(IBATensor main.cpp
         IBATensor.cpp
-        IBATensor.h)
+        IBATensor.h
+)

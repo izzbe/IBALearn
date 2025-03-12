@@ -8,7 +8,7 @@
 #define IBATENSOR_H
 
 
-namespace ibatensor{
+namespace ibatensor {
 
     std::vector<int> range(int size, int start = 0);
 
@@ -20,24 +20,6 @@ namespace ibatensor{
         int size; // total elements
         std::vector<int> stride;
         std::vector<int> shape;
-
-        class Iterator {
-            std::vector<int> cur_loc;
-            Tensor &T;
-            std::vector<int> shape;
-            std::vector<int> stride_sizes;
-            const std::vector<int> dim_order;
-            std::vector<int> slice;
-            explicit Iterator(Tensor &T, bool end = false,
-                std::vector<int> slice = values(-1, T.shape.size()), std::vector<int> dim_order = {});
-            friend class Tensor;
-        public:
-            void operator++();
-            float &operator*();
-            bool operator==(const Iterator &other) const;
-            bool operator!=(const Iterator &other) const;
-        };
-
     public:
         Tensor();
         Tensor(const std::vector<int>& shape);
@@ -56,12 +38,6 @@ namespace ibatensor{
         Tensor operator-(Tensor other); //element wise subtraction
 
         Tensor apply(Tensor other, float (*func)(float));
-
-        Tensor::Iterator begin();
-        Tensor::Iterator end();
-
-        Tensor::Iterator begin(std::vector<int> slice, std::vector<int> dim_order = {});
-        Tensor::Iterator end(std::vector<int> slice, std::vector<int> dim_order = {});
 
     };
 
