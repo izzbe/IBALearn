@@ -76,6 +76,14 @@ float CPUData::iloc(int i) const {
     }
     return head[i];
 }
+
+void CPUData::set_index(int i, float val) {
+    if(i < 0 || i > size) {
+        throw std::logic_error("CUDA set_index out of bound");
+    }
+
+    head[i] = val;
+}
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
 std::unique_ptr<DeviceData> CPUData::elemAdd(const DeviceData *other) const {
     float *C = new float[size];
@@ -115,4 +123,26 @@ std::unique_ptr<DeviceData> CPUData::mat_mult(const DeviceData *other, int m, in
 
     return std::make_unique<CPUData>(C, m * k );
 
+}
+
+std::unique_ptr<DeviceData> CPUData::conv2d(const DeviceData *kern, int N, int C_in,
+                                             int H, int W, int H_out, int W_out, int K, int P, int S, int C_out) const {
+    return std::make_unique<CPUData> (nullptr, 0);
+
+}
+
+std::unique_ptr<DeviceData> CPUData::avg_pool(int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S) const {
+    return std::make_unique<CPUData> (nullptr, 0);
+}
+
+std::unique_ptr<DeviceData> CPUData::max_pool(int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S) const {
+    return std::make_unique<CPUData> (nullptr, 0);
+}
+
+std::unique_ptr<DeviceData> CPUData::mat_transpose(int H, int W, int C, int N) const {
+    return std::make_unique<CPUData> (nullptr, 0);
+}
+
+std::unique_ptr<DeviceData> CPUData::relu(int H, int W, int C, int N) const {
+    return std::make_unique<CPUData> (nullptr, 0);
 }

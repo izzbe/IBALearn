@@ -1,11 +1,5 @@
 "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2024.3.4/bin/ninja/win/x64/ninja.exe" -G Ninja -S D:\Uwaterloo2024\IBA_ML\IBATensor\IBADeviceData -B D:\Uwaterloo2024\IBA_ML\IBATensor\IBADeviceData\cmake-build-debug
--- The CXX compiler identification is GNU 13.1.0
 -- The CUDA compiler identification is NVIDIA 12.6.20
--- Detecting CXX compiler ABI info
--- Detecting CXX compiler ABI info - done
--- Check for working CXX compiler: C:/Program Files/JetBrains/CLion 2024.3.4/bin/mingw/bin/g++.exe - skipped
--- Detecting CXX compile features
--- Detecting CXX compile features - done
 -- Detecting CUDA compiler ABI info
 -- Detecting CUDA compiler ABI info - failed
 -- Check for working CUDA compiler: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin/nvcc.exe
@@ -19,16 +13,16 @@ CMake Error at C:/Program Files/JetBrains/CLion 2024.3.4/bin/cmake/win/x64/share
 
   It fails with the following output:
 
-    Change Dir: 'D:/Uwaterloo2024/IBA_ML/IBATensor/IBADeviceData/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-rw224n'
+    Change Dir: 'D:/Uwaterloo2024/IBA_ML/IBATensor/IBADeviceData/cmake-build-debug/CMakeFiles/CMakeScratch/TryCompile-3dko6o'
     
-    Run Build Command(s): "C:/Program Files/JetBrains/CLion 2024.3.4/bin/ninja/win/x64/ninja.exe" -v cmTC_b4cf9
-    [1/2] "C:\PROGRA~1\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -forward-unknown-to-host-compiler   -D_WINDOWS -Xcompiler=" /GR /EHsc"  -Xcompiler=" -Zi -Ob0 -Od /RTC1" "--generate-code=arch=compute_52,code=[compute_52,sm_52]" -Xcompiler=-MDd -MD -MT CMakeFiles\cmTC_b4cf9.dir\main.cu.obj -MF CMakeFiles\cmTC_b4cf9.dir\main.cu.obj.d -x cu -c D:\Uwaterloo2024\IBA_ML\IBATensor\IBADeviceData\cmake-build-debug\CMakeFiles\CMakeScratch\TryCompile-rw224n\main.cu -o CMakeFiles\cmTC_b4cf9.dir\main.cu.obj -Xcompiler=-FdCMakeFiles\cmTC_b4cf9.dir\,-FS
+    Run Build Command(s): "C:/Program Files/JetBrains/CLion 2024.3.4/bin/ninja/win/x64/ninja.exe" -v cmTC_7a9a1
+    [1/2] "C:\PROGRA~1\NVIDIA GPU Computing Toolkit\CUDA\v12.6\bin\nvcc.exe" -forward-unknown-to-host-compiler   -D_WINDOWS -Xcompiler=" /GR /EHsc"  -Xcompiler=" -Zi -Ob0 -Od /RTC1" "--generate-code=arch=compute_52,code=[compute_52,sm_52]" -MD -MT CMakeFiles\cmTC_7a9a1.dir\main.cu.obj -MF CMakeFiles\cmTC_7a9a1.dir\main.cu.obj.d -x cu -c D:\Uwaterloo2024\IBA_ML\IBATensor\IBADeviceData\cmake-build-debug\CMakeFiles\CMakeScratch\TryCompile-3dko6o\main.cu -o CMakeFiles\cmTC_7a9a1.dir\main.cu.obj -Xcompiler=-FdCMakeFiles\cmTC_7a9a1.dir\,-FS
     main.cu
-    tmpxft_00000ea4_00000000-10_main.cudafe1.cpp
-    [2/2] C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_b4cf9.dir --rc="C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe" --mt="" --manifests  -- "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\ld.exe" /nologo CMakeFiles\cmTC_b4cf9.dir\main.cu.obj  /out:cmTC_b4cf9.exe /implib:cmTC_b4cf9.lib /pdb:cmTC_b4cf9.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
-    FAILED: cmTC_b4cf9.exe 
-    C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_b4cf9.dir --rc="C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe" --mt="" --manifests  -- "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\ld.exe" /nologo CMakeFiles\cmTC_b4cf9.dir\main.cu.obj  /out:cmTC_b4cf9.exe /implib:cmTC_b4cf9.lib /pdb:cmTC_b4cf9.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
-    RC Pass 1: command "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe /fo CMakeFiles\cmTC_b4cf9.dir/manifest.res CMakeFiles\cmTC_b4cf9.dir/manifest.rc" failed (exit code 1) with the following output:
+    tmpxft_00004378_00000000-10_main.cudafe1.cpp
+    [2/2] C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_7a9a1.dir --rc="C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe" --mt="" --manifests  -- "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\ld.exe" /nologo CMakeFiles\cmTC_7a9a1.dir\main.cu.obj  /out:cmTC_7a9a1.exe /implib:cmTC_7a9a1.lib /pdb:cmTC_7a9a1.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
+    FAILED: cmTC_7a9a1.exe 
+    C:\WINDOWS\system32\cmd.exe /C "cd . && "C:\Program Files\JetBrains\CLion 2024.3.4\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_7a9a1.dir --rc="C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe" --mt="" --manifests  -- "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\ld.exe" /nologo CMakeFiles\cmTC_7a9a1.dir\main.cu.obj  /out:cmTC_7a9a1.exe /implib:cmTC_7a9a1.lib /pdb:cmTC_7a9a1.pdb /version:0.0 /debug /INCREMENTAL  cudadevrt.lib  cudart_static.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib -LIBPATH:"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/lib/x64" && cd ."
+    RC Pass 1: command "C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe /fo CMakeFiles\cmTC_7a9a1.dir/manifest.res CMakeFiles\cmTC_7a9a1.dir/manifest.rc" failed (exit code 1) with the following output:
     Usage: C:\PROGRA~1\JetBrains\CLion 2024.3.4\bin\mingw\bin\windres.exe [option(s)] [input-file] [output-file]
      The options are:
       -i --input=<file>            Name input file
@@ -63,7 +57,7 @@ CMake Error at C:/Program Files/JetBrains/CLion 2024.3.4/bin/cmake/win/x64/share
 
   CMake will not be able to correctly generate this project.
 Call Stack (most recent call first):
-  CMakeLists.txt:2 (project)
+  CMakeLists.txt:4 (project)
 
 
 -- Configuring incomplete, errors occurred!

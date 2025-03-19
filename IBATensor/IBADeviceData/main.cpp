@@ -1,71 +1,56 @@
+#include "deviceData.h"
+#include "CudaData.cuh"
+#include "CPUData.h"
 #include <iostream>
 #include <vector>
-#include <memory>
-#include "deviceData.h"
-#include "CPUData.h"  // Include your CPUData implementation
-#include "CudaData.cuh"
+#include <cstdlib>
 
-void printData(const std::string &name, const DeviceData &data) {
-    std::cout << name << " (size " << data.getSize() << "): ";
-    for (size_t i = 0; i < data.getSize(); i++) {
-        std::cout << data.iloc(i) << " ";
+void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
+    for (int n = 0; n < N; ++n) {
+        for (int c = 0; c < C; ++c) {
+            std::cout << "\n=== N = " << n << ", C = " << c << " ===\n";
+            for (int h = 0; h < H; ++h) {
+                for (int w_ = 0; w_ < W; ++w_) {
+                    // Compute the linear index in your flattened array
+                    int idx = n * C * H * W
+                              + c * H * W
+                              + h * W
+                              + w_;
+                    std::cout << data->iloc(idx) << "\t";
+                }
+                std::cout << "\n";
+            }
+        }
     }
     std::cout << std::endl;
 }
 
 int main() {
-    // Sample Data
-    std::vector<float> dataA = {1.0f, 2.0f, 3.0f, 4.0f};
-    std::vector<float> dataB = {5.0f, 6.0f, 7.0f, 8.0f};
+    // We'll create a tensor (N=2, C=2, H=3, W=4).
+    // That is 48 elements total. We'll fill from -10..37
+    int N = 2;
+    int C = 2;
+    int H = 3;
+    int W = 4;
 
-    size_t free_mem, total_mem;
+    std::vector<float> hostData(N * C * H * W);
+    for (int i = 0; i < (N*C*H*W); i++) {
+        hostData[i] = static_cast<float>(i - 10); // values from -10..37
+    }
 
-    std::cout << "Free Memory: " << free_mem << " / " << total_mem << std::endl;
-    // Create DeviceData instances (CPU-based for testing)
-    std::unique_ptr<DeviceData> A = std::make_unique<CudaData>(dataA);
+    // Create your GPU-based data object
+    std::unique_ptr<DeviceData> inputCuda = std::make_unique<CudaData>(hostData);
 
-    std::cout << "Free Memory: " << free_mem << " / " << total_mem << std::endl;
+    // Print the original data
+    std::cout << "=== Original Tensor (N=2, C=2, H=3, W=4) ===" << std::endl;
+    printDeviceData(inputCuda.get(), N, C, H, W);
 
-    std::unique_ptr<DeviceData> B = std::make_unique<CudaData>(dataB);
+    // Call relu(H, W, C, N) => returns a new device data object with ReLU applied
+    std::unique_ptr<DeviceData> reluCuda = inputCuda->relu(H, W, C, N);
 
-    std::cout << "Free Memory: " << free_mem << " / " << total_mem << std::endl;
-
-    // Print original data
-    printData("A", *A);
-    printData("B", *B);
-
-    // Perform element-wise addition
-    std::unique_ptr<DeviceData> C = A->elemAdd(B.get());
-    printData("A + B", *C);
-
-    std::cout << "Free Memory: " << free_mem << " / " << total_mem << std::endl;
-
-    // Perform element-wise multiplication
-    std::unique_ptr<DeviceData> D = A->elemMult(B.get());
-    printData("A * B", *D);
-
-    std::cout << "Free Memory: " << free_mem << " / " << total_mem << std::endl;
-
-    // Perform matrix multiplication (assuming A and B are 2x2 matrices)
-    std::unique_ptr<DeviceData> E = A->mat_mult(B.get(), 2, 2, 2);
-    printData("A x B", *E);
-
-    std::cout <<"Test" <<std::endl;
-
-    A.reset();
-    std::cout << "Deleted" << std::endl;
-
-    B.reset();
-    std::cout << "Deleted" << std::endl;
-
-    C.reset();
-    std::cout << "Deleted" << std::endl;
-
-    D.reset();
-    std::cout << "Deleted" << std::endl;
-
-    E.reset();
-    std::cout << "Deleted" << std::endl;
+    // Print the result
+    std::cout << "=== After ReLU ===" << std::endl;
+    printDeviceData(reluCuda.get(), N, C, H, W);
 
     return 0;
 }

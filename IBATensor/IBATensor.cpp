@@ -5,29 +5,33 @@
 #include <algorithm>
 #include <numeric>
 #include <iostream>
-
+#include <memory>
 namespace ibatensor {
-    std::vector<int> range(int size, int start = 0) {
-        std::vector<int> vec;
-        for (int i = start; i < size; ++i) {
-            vec.push_back(i);
+
+// ---------------------------------------------- constructors --------------------------------------------------------
+	std::unique_ptr<DeviceData> Tensor::construct_data(std::vector<float> data, int cuda_or_cpu) {
+    	if (cuda_or_cpu == CPU) {
+        	return std::make_unique<CPUData>(data);
+        } else if (cuda_or_cpu == CUDA) {
+        	return std::make_unique<CudaData>(data);
         }
-        return vec;
+
     }
 
-    std::vector<int> values(int val, int size) {
-        std::vector<int> vec;
-        for (int i = 0; i < size; ++i) {
-            vec.push_back(val);
-        }
-        return vec;
-    }
+    Tensor::Tensor(int cuda_or_cpu) : size(0), data(nullptr) {
+	    std::vector<float> empty_vec;
+	    data = construct_data(empty_vec, cuda_or_cpu);
+	}
 
-    Tensor::Tensor() : size(0) {}
-
-    Tensor::Tensor(const std::vector<int>& shape) : shape(shape) {
+    Tensor::Tensor(const std::vector<int>& shape, int cuda_or_cpu) : shape(shape), data(nullptr) {
         size = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
-        data = std::vector<float>(size);
+
+	    std::vector<float> zeros;
+	    for (int i = 0; i < size; i ++) {
+	        zeros.push_back(0.0f);
+	    }
+
+	    data = construct_data(zeros, cuda_or_cpu);
 
         stride.resize(shape.size());
         int curr_stride = 1;
@@ -37,29 +41,21 @@ namespace ibatensor {
         }
     }
 
-    Tensor::Tensor(const std::vector<int>& shape, std::vector<float> values) : Tensor(shape) {
+    Tensor::Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu) : size(size), shape(shape) {
         if (values.size()) {
-            data = values;
+            data = construct_data(values, cuda_or_cpu);
         }
+
+	    stride.resize(shape.size());
+	    int curr_stride = 1;
+	    for (int i = shape.size() - 1; i >= 0; --i) {
+	        stride[i] = curr_stride;
+	        curr_stride *= shape[i];
+	    }
+
     }
 
-    float& Tensor::get(std::vector<int> indices) {
-        if (indices.size() != shape.size()) {
-            throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
-        }
-        
-        // calculate actual index in vector using strides
-        int flat_idx = 0;
-        for (int i = 0; i < indices.size(); ++i) {
-            if (indices[i] >= shape[i]) {
-                throw std::out_of_range("Index out of bounds");
-            }
-            flat_idx += indices[i] * stride[i];
-        }
-        
-        return data[flat_idx];    
-    }
-
+// ---------------------------------------------- getters/setters --------------------------------------------------------
     float Tensor::get(std::vector<int> indices) const {
         if (indices.size() != shape.size()) {
             throw std::invalid_argument("Number of indices doesn't match tensor dimensions");
@@ -74,13 +70,13 @@ namespace ibatensor {
             flat_idx += indices[i] * stride[i];
         }
         
-        return data[flat_idx];  
+        return data->iloc(flat_idx);
     }
 
-
+// ---------------------------------------------- matrixops --------------------------------------------------------
     void Tensor::print() const {
         
-        if (shape.size() == 0 || data.empty()) {
+        if (shape.size() == 0 || data->getSize() == 0) {
             std::cout << "[]" << std::endl;
             return;
         }
@@ -89,11 +85,12 @@ namespace ibatensor {
         if (shape.size() == 1) {
             std::cout << "[";
             for (int i = 0; i < shape[0]; i++) {
-                std::cout << data[i];
+                std::cout << data->iloc(i);
                 if (i < shape[0] - 1) std::cout << ", ";
             }
             std::cout << "]" << std::endl;
-        } 
+        }
+
         // 2D tensors
         if (shape.size() == 2) {
             std::cout << "[";

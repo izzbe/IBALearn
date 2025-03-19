@@ -2,8 +2,6 @@
 #include <iostream>
 #include <cuda_runtime.h>
 
-const int TILE_SIZE = 16;
-
 __global__ void matMulTiledKernel(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
 
 
@@ -47,101 +45,10 @@ __global__ void matMulTiledKernel(const float A[], int A_shape[], const float B[
 
 }
 
-__global__ void matToMatAdd(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
+__global__ void matTensorAdd(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
+  	int global_row = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] + B[global_row * B_shape[1] + global_col];
-    }
+	int A_dim =
 }
 
-__global__ void matToVecAdd(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
 
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] + B[global_row];
-    }
-}
-
-__global__ void matToScalAdd(const float A[], int A_shape[], const float B, float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] + B;
-    }
-}
-
-__global__ void matToMatSub(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * A_shape[1] + global_col] - B[global_row * B_shape[1] + global_col];
-    }
-}
-
-__global__ void matToVecSub(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] - B[global_row];
-    }
-}
-
-__global__ void matToScalSub(const float A[], int A_shape[], const float B, float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] - B;
-    }
-}
-
-__global__ void matToMatMult(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * A_shape[1] + global_col] * B[global_row * B_shape[1] + global_col];
-    }
-}
-
-__global__ void matToVecMult(const float A[], int A_shape[], const float B[], int B_shape[], float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] * B[global_row];
-    }
-}
-
-__global__ void matToScalMult(const float A[], int A_shape[], const float B, float C[], int C_shape[]) {
-
-    int global_row = blockIdx.y * blockDim.y + threadIdx.y;
-    int global_col = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (global_row < A_shape[0] && global_col < A_shape[1]) {
-        C[global_row * A_shape[1] + global_col] =
-            A[global_row * C_shape[1] + global_col] * B;
-    }
-}
