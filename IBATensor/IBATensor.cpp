@@ -7,7 +7,7 @@
 #include <iostream>
 
 namespace ibatensor {
-    std::vector<int> range(int size, int start = 0) {
+    std::vector<int> range(int start = 0, int size) {
         std::vector<int> vec;
         for (int i = start; i < size; ++i) {
             vec.push_back(i);
