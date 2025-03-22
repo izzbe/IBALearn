@@ -157,8 +157,6 @@ namespace ibatensor {
 		std::unique_ptr<DeviceData> data_new = data->relu(H, W, C, N);
 	}
 
-	Tensor Tensor::
-
 
 
 

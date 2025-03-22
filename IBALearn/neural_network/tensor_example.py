@@ -13,9 +13,9 @@ def main():
 
     # Get properties
     tensor2.print()
-    print(f"Shape: {tensor2.shape()}")
-    print(f"Strides: {tensor2.strides()}")
-    print(f"Size: {tensor2.size()}")
+    print(f"Shape: {tensor2.shape}")
+    print(f"Strides: {tensor2.stride}")
+    print(f"Size: {tensor2.size}")
 
     # # String representation
     # print("\nString representation:")

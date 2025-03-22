@@ -2,6 +2,7 @@
 // Created by ianzh on 3/12/2025.
 //
 #include "CPUData.h"
+#include <cstring>
 
 // ------------------------------------------------ Constructors ------------------------------------------------------
 CPUData::CPUData(size_t size) : head(new float[size]), size(size) {}

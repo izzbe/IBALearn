@@ -23,9 +23,9 @@ namespace ibatensor {
     private:
     	static std::unique_ptr<DeviceData> construct_data(std::vector<float> data, int cuda_or_cpu);
     public:
-        Tensor(int cuda_or_cpu);
-        Tensor(const std::vector<int>& shape, int cuda_or_cpu);
-        Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu);
+        Tensor(int cuda_or_cpu = 0);
+        Tensor(const std::vector<int>& shape, int cuda_or_cpu = 0);
+        Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu = 0);
         Tensor(const std::vector<int>& shape, std::unique_ptr<DeviceData> data);
 
 
