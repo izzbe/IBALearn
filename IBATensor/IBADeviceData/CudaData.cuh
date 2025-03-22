@@ -1,10 +1,10 @@
 #ifndef MATRIX_OPSV2_LIBRARY_CUH
 #define MATRIX_OPSV2_LIBRARY_CUH
 #include <iostream>
-#include <cuda_runtime.h>
 #include <vector>
 #include "deviceData.h"
 #include <stdexcept>
+#include <cuda_runtime.h>
 
 const int TILE_SIZE = 16;
 enum class Operation { Add, Sub, Mult };
@@ -59,9 +59,5 @@ public:
 
 
 };
-
-__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n);
-
-__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o);
 
 #endif //MATRIX_OPSV2_LIBRARY_CUH

@@ -17,7 +17,7 @@ namespace ibatensor {
     class Tensor {
      public:
         std::unique_ptr<DeviceData> data;
-        int size; // total elements
+        size_t size; // total elements
         std::vector<int> stride;
         std::vector<int> shape;
     private:
@@ -26,19 +26,20 @@ namespace ibatensor {
         Tensor(int cuda_or_cpu);
         Tensor(const std::vector<int>& shape, int cuda_or_cpu);
         Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu);
+        Tensor(const std::vector<int>& shape, std::unique_ptr<DeviceData> data);
+
 
         float get(std::vector<int> indices) const;
         void set(std::vector<int> indices, float value);
         void print_shape() const;
         void print() const;
+        const DeviceData *getData() const;
 
-        Tensor operator*(Tensor other);
-        Tensor operator+(Tensor other); //element wise addition
-        Tensor operator/(Tensor other); //element wise division
-        Tensor operator-(Tensor other); //element wise subtraction
-
-        Tensor apply(Tensor other, float (*func)(float));
-
+        Tensor operator%(const Tensor &other) const;
+        Tensor operator*(const Tensor &other) const;
+        Tensor operator+(const Tensor &other) const; //element wise addition
+        Tensor operator-(const Tensor &other) const; //element wise subtraction
+        Tensor ReLu() const;
 
     };
 

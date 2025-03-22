@@ -1,6 +1,9 @@
 #include "CudaData.cuh"
 #include <iostream>
 #include <cfloat>
+// ------------------------------------------------ Decls -------------------------------------------------------------
+__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o);
+__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n);
 // ------------------------------------------------ Constructors ------------------------------------------------------
 CudaData::CudaData(size_t size) : size(size) {
       cudaMalloc(&head, size * sizeof(float));

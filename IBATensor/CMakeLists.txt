@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(MyApp LANGUAGES CXX CUDA)
+project(IBADeviceData LANGUAGES CXX CUDA)
 
+# Set C++/CUDA standards
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
@@ -13,9 +14,12 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # -----------------------------------------------------------------------------
 add_library(IBADeviceData STATIC IMPORTED)
 
+set(IBADEVICE_DATA_DIR   "${CMAKE_CURRENT_SOURCE_DIR}/IBADeviceData")
+set(IBADEVICE_DATA_LIB   "${IBADEVICE_DATA_DIR}/build/Debug/IBADeviceData.lib")
+
 set_target_properties(IBADeviceData PROPERTIES
-        IMPORTED_LOCATION "IBADeviceData/build/Debug/IBADeviceData.lib"         # or .lib on Windows
-        INTERFACE_INCLUDE_DIRECTORIES "IBADeviceData"       # where deviceData.h, etc. live
+        IMPORTED_LOCATION           "${IBADEVICE_DATA_LIB}"
+        INTERFACE_INCLUDE_DIRECTORIES "${IBADEVICE_DATA_DIR}"
 )
 
 # If your library requires the CUDA runtime, or other libs, you can link them too:
@@ -28,5 +32,8 @@ set_target_properties(IBADeviceData PROPERTIES
 # -----------------------------------------------------------------------------
 add_executable(TestExecutable main.cpp)
 
-# Link the prebuilt library to the executable
-target_link_libraries(TestExecutable PRIVATE IBADeviceData)
+target_link_libraries(TestExecutable
+        PRIVATE
+        IBADeviceData
+        CUDA::cudart
+)

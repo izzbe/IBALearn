@@ -55,6 +55,9 @@ namespace ibatensor {
 
     }
 
+    Tensor::Tensor(const std::vector<int>& shape, std::unique_ptr<DeviceData> data) : data(std::move(data)),
+                                                                                      size(this->data->getSize()) {}
+
 // ---------------------------------------------- getters/setters --------------------------------------------------------
     float Tensor::get(std::vector<int> indices) const {
         if (indices.size() != shape.size()) {
@@ -73,7 +76,13 @@ namespace ibatensor {
         return data->iloc(flat_idx);
     }
 
+    const DeviceData *Tensor::getData() const {
+	    return data.get();
+	}
+
 // ---------------------------------------------- matrixops --------------------------------------------------------
+
+
     void Tensor::print() const {
         
         if (shape.size() == 0 || data->getSize() == 0) {
@@ -109,5 +118,48 @@ namespace ibatensor {
         else
             std::cout << "3+ dimensional tensor print not yet implemented" << std::endl;
     }
+
+    Tensor Tensor::operator%(const Tensor &other) const {
+	    std::unique_ptr<DeviceData> data_new = data->mat_mult(other.getData(),
+	                                                            this->shape[0],
+	                                                            this->shape[1],
+	                                                            other.shape[1]);
+	    std::vector<int> shape_new = {this->shape[0], other.shape[1]};
+	    return {shape_new, std::move(data_new)};
+	}
+
+    Tensor Tensor::operator*(const Tensor &other) const {
+	    std::unique_ptr<DeviceData> data_new = data->elemMult(other.getData());
+	    std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+
+	    return {shape_new, std::move(data_new)};
+	}
+
+    Tensor Tensor::operator+(const Tensor &other) const {
+	    std::unique_ptr<DeviceData> data_new = data->elemAdd(other.getData());
+	    std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+
+	    return {shape_new, std::move(data_new)};
+	}
+
+	Tensor Tensor::operator-(const Tensor &other) const {
+		std::unique_ptr<DeviceData> data_new = data->elemSub(other.getData());
+		std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor Tensor::ReLu() const {
+		int H = shape[0];
+		int W = (shape.size() >= 2) ? shape[1] : 1;
+		int C = (shape.size() >= 3) ? shape[2] : 1;
+		int N = (shape.size() >= 4) ? shape[3] : 1;
+		std::unique_ptr<DeviceData> data_new = data->relu(H, W, C, N);
+	}
+
+	Tensor Tensor::
+
+
+
 
 }
