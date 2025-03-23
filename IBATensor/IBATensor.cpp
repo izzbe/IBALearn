@@ -111,6 +111,10 @@ namespace ibatensor {
 	}
 
     Tensor Tensor::operator%(const Tensor &other) const {
+		if (this->shape[1] != other.shape[0]) {
+			throw std::invalid_argument("invalid dimensions for matrix multiplication");
+		}
+
 	    std::unique_ptr<DeviceData> data_new = data->mat_mult(other.getData(),
 	                                                            this->shape[0],
 	                                                            this->shape[1],

@@ -10,3 +10,9 @@ python setup.py build_ext --inplace
 ```
 
 Then, the tensor library can be imported in python files using `from IBALearn.neural_network import ibatensor`
+
+Run the tensor example:
+```bash
+# from root directory
+python -m IBALearn.neural_network.tensor_example
+```
