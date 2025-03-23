@@ -52,5 +52,27 @@ int main() {
     std::cout << "=== After ReLU ===" << std::endl;
     printDeviceData(reluCuda.get(), N, C, H, W);
 
-    return 0;
+    std::vector<float>
+
+    const int m = 20000;
+    const int k = 20000;
+    const int n = 20000;
+
+    // Calculate the total number of elements in each matrix.
+    size_t sizeA = static_cast<size_t>(m) * k;
+    size_t sizeB = static_cast<size_t>(k) * n;
+
+    // Initialize matrices with some test values.
+    // For this example, we'll fill them with 1.0.
+    std::vector<float> A(sizeA, 1.0f);
+    std::vector<float> B(sizeB, 1.0f);
+
+    // Create CudaData objects using the vector constructor.
+    CudaData matrixA(A);
+    CudaData matrixB(B);
+
+    // Multiply the matrices.
+    // This multiplies an m x k matrix with a k x n matrix.
+    // The method returns a unique_ptr<DeviceData> that wraps the result.
+    std::unique_ptr<DeviceData> result = matrixA.mat_mult(&matrixB, m, k, n);
 }

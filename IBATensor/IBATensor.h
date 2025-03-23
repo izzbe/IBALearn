@@ -40,6 +40,10 @@ namespace ibatensor {
         Tensor operator+(const Tensor &other) const; //element wise addition
         Tensor operator-(const Tensor &other) const; //element wise subtraction
         Tensor ReLu() const;
+        Tensor conv2d(const Tensor &kernel, int padding, int stride) const;
+        Tensor avg_pool(int K, int padding, int stride) const;
+        Tensor max_pool(int K, int padding, int stride) const;
+        Tensor mat_transpose() const;
 
     };
 

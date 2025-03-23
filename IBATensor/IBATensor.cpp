@@ -157,8 +157,75 @@ namespace ibatensor {
 		std::unique_ptr<DeviceData> data_new = data->relu(H, W, C, N);
 	}
 
-	Tensor Tensor::
+	Tensor Tensor::conv2d(const Tensor &kernel, int padding, int stride) const {
+		int H = this->shape[0];
+		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
+		int K = kernel.shape[0];
+		int K_c = (kernel.shape.size() >= 3) ? kernel.shape[3] : 1;
+
+		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
+
+		int W_out = ((W + ( 2 * padding ) - K) / stride) + 1;
+
+		std::unique_ptr<DeviceData> data_new = data->conv2d(kernel.getData(),
+															N, C, H, W, H_out, W_out, K,
+															padding, stride, K_c);
+
+		std::vector<int> size_new = {H_out, W_out, K_c, N};
+
+		return {size_new, std::move(data_new)};
+	}
+
+	Tensor Tensor::avg_pool(int K, int padding, int stride) const {
+		int H = this->shape[0];
+		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+
+		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
+
+		int W_out = ((W + ( 2 * padding ) - K) / stride) + 1;
+
+		std::unique_ptr<DeviceData> data_new = data->avg_pool(N, C, H, W, H_out, W_out, K, padding, stride);
+
+		std::vector<int> size_new = {H_out, W_out, C, N};
+
+		return {size_new, std::move(data_new)};
+
+	}
+
+	Tensor Tensor::max_pool(int K, int padding, int stride) const {
+		int H = this->shape[0];
+		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+
+		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
+
+		int W_out = ((W + ( 2 * padding ) - K) / stride) + 1;
+
+		std::unique_ptr<DeviceData> data_new = data->max_pool(N, C, H, W, H_out, W_out, K, padding, stride);
+
+		std::vector<int> size_new = {H_out, W_out, C, N};
+
+		return {size_new, std::move(data_new)};
+
+	}
+
+	Tensor Tensor::mat_transpose() const {
+		int H = this->shape[0];
+		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = data->mat_transpose(H, W, C, N);
+		std::vector<int> size_new = {H, W, C, N};
+
+		return {size_new, std::move(data_new)};
+	}
 
 
 
