@@ -56,7 +56,8 @@ namespace ibatensor {
     }
 
     Tensor::Tensor(const std::vector<int>& shape, std::unique_ptr<DeviceData> data) : data(std::move(data)),
-                                                                                      size(this->data->getSize()) {}
+                                                                                      size(this->data->getSize()),
+																					  shape(shape) {}
 
 // ---------------------------------------------- getters/setters --------------------------------------------------------
     float Tensor::get(std::vector<int> indices) const {
