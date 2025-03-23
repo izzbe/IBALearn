@@ -24,6 +24,10 @@ set_target_properties(IBADeviceData PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${IBADEVICE_DATA_DIR}"
 )
 
+add_library(IBATensorLib STATIC
+    IBATensor.cpp
+)
+
 # If your library requires the CUDA runtime, or other libs, you can link them too:
 # For example:
 # find_package(CUDAToolkit REQUIRED)
@@ -32,10 +36,13 @@ set_target_properties(IBADeviceData PROPERTIES
 # -----------------------------------------------------------------------------
 # 2) Create an executable (or library) that uses the prebuilt IBADeviceData library.
 # -----------------------------------------------------------------------------
+target_link_libraries(IBADeviceData INTERFACE CUDA::cudart)
+target_link_libraries(IBATensorLib PRIVATE IBADeviceData)
+
 add_executable(TestExecutable main.cpp)
 
 target_link_libraries(TestExecutable
         PRIVATE
-        IBADeviceData
+        IBATensorLib
         CUDA::cudart
 )

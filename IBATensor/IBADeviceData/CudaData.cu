@@ -1,9 +1,7 @@
 #include "CudaData.cuh"
 #include <iostream>
 #include <cfloat>
-// ------------------------------------------------ Decls -------------------------------------------------------------
-__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o);
-__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n);
+
 // ------------------------------------------------ Constructors ------------------------------------------------------
 CudaData::CudaData(size_t size) : size(size) {
       cudaMalloc(&head, size * sizeof(float));
@@ -82,6 +80,25 @@ void CudaData::set_index(int i, float val) {
     set_index_kernel<<<1, 1>>>(head, i, val);
 }
 
+// -------------------------------------------------------- FORWARD --------------------------------------------------------------
+//
+//
+//
+//
+//
+//
+// ---------------------------------------------------------------------------------------------------------------------------------
+
+// ------------------------------------------------ Decls -------------------------------------------------------------
+__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o);
+__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n);
+__host__ std::unique_ptr<DeviceData> conv2d_base(const float *in, const float *kern, int N, int C_in,
+                                                 int H, int W, int H_out, int W_out, int K, int P, int S, int C_out);
+__host__ std::unique_ptr<DeviceData> pool_base(const float *in, int N, int C_in,
+                                                 int H, int W, int H_out, int W_out, int K, int P, int S, Pool option);
+__host__ std::unique_ptr<DeviceData> mat_transpose_base(const float *in, int H, int W, int C, int N);
+__host__ std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, int C, int N);
+
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
 std::unique_ptr<DeviceData> CudaData::elemAdd(const DeviceData *other) const {
       const CudaData *type_check = dynamic_cast<const CudaData*>(other);
@@ -119,8 +136,6 @@ std::unique_ptr<DeviceData> CudaData::mat_mult(const DeviceData *other, int m, i
       return mat_mult_base(this, type_check, m, k, n);
 }
 
-std::unique_ptr<DeviceData> conv2d_base(const float *in, const float *kern, int N, int C_in,
-                                                 int H, int W, int H_out, int W_out, int K, int P, int S, int C_out);
 
 std::unique_ptr<DeviceData> CudaData::conv2d(const DeviceData *kern, int N, int C_in,
                                              int H, int W, int H_out, int W_out, int K, int P, int S, int C_out) const {
@@ -131,8 +146,6 @@ std::unique_ptr<DeviceData> CudaData::conv2d(const DeviceData *kern, int N, int 
       return conv2d_base(head, type_check->getData(), N, C_in, H, W, H_out, W_out, K, P, S, C_out);
 }
 
-std::unique_ptr<DeviceData> pool_base(const float *in, int N, int C_in,
-                                                 int H, int W, int H_out, int W_out, int K, int P, int S, Pool option);
 
 std::unique_ptr<DeviceData> CudaData::avg_pool(int N, int C_in, int H, int W, int H_out, int W_out,
                                                int K, int P, int S) const {
@@ -144,13 +157,11 @@ std::unique_ptr<DeviceData> CudaData::max_pool(int N, int C_in, int H, int W, in
       return pool_base(head, N, C_in, H, W, H_out, W_out, K, P, S, Pool::Max);
 }
 
-std::unique_ptr<DeviceData> mat_transpose_base(const float *in, int H, int W, int C, int N);
 
 std::unique_ptr<DeviceData> CudaData::mat_transpose(int H, int W, int C, int N) const {
       return mat_transpose_base(head, H, W, C, N);
 }
 
-std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, int C, int N);
 std::unique_ptr<DeviceData> CudaData::relu(int H, int W, int C, int N) const {
       return relu_base(head, H, W, C, N);
 }
@@ -449,3 +460,4 @@ __host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData
       return std::make_unique<CudaData>(C, A->getSize());
 
 }
+

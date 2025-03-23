@@ -56,8 +56,12 @@ public:
     std::unique_ptr<DeviceData> relu(int H, int W, int C, int N) const;
 
 
-
-
 };
+
+// ------------------------------------------------------------------- BACKWARDS -------------------------------------------------------------
+std::unique_ptr<DeviceData> conv2d_backward(const DeviceData *sigma, const DeviceData *input, const DeviceData *kern,
+                                            int N, int C_k, int H_k, int W_k, int H_in, int W_in, int C_in, int P, int S);
+
+
 
 #endif //MATRIX_OPSV2_LIBRARY_CUH

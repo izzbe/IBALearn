@@ -1,9 +1,7 @@
 #include "deviceData.h"
 #include "CudaData.cuh"
 #include "CPUData.h"
-#include <iostream>
-#include <vector>
-#include <cstdlib>
+#include "IBATensor.h"
 
 void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     for (int n = 0; n < N; ++n) {

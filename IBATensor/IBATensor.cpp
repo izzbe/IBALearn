@@ -85,40 +85,30 @@ namespace ibatensor {
 
 
     void Tensor::print() const {
-        
-        if (shape.size() == 0 || data->getSize() == 0) {
-            std::cout << "[]" << std::endl;
-            return;
-        }
-        
-        // 1D tensors
-        if (shape.size() == 1) {
-            std::cout << "[";
-            for (int i = 0; i < shape[0]; i++) {
-                std::cout << data->iloc(i);
-                if (i < shape[0] - 1) std::cout << ", ";
-            }
-            std::cout << "]" << std::endl;
-        }
 
-        // 2D tensors
-        if (shape.size() == 2) {
-            std::cout << "[";
-            for (int i = 0; i < shape[0]; i++) {
-                std::cout << "[";
-                for (int j = 0; j < shape[1]; j++) {
-                    std::cout << get({i, j});
-                    if (j < shape[1] - 1) std::cout << ", ";
-                }
-                std::cout << "]";
-                if (i < shape[0] - 1) std::cout << ",";
-            }
-            std::cout << "]" << std::endl;
-        }
-        // todo: print higher dimensional tensors
-        else
-            std::cout << "3+ dimensional tensor print not yet implemented" << std::endl;
-    }
+		int H = shape[0];
+		int W = (shape.size() >= 2) ? shape[1] : 1;
+		int C = (shape.size() >= 3) ? shape[2] : 1;
+		int N = (shape.size() >= 4) ? shape[3] : 1;
+
+		for (int n = 0; n < N; ++n) {
+			for (int c = 0; c < C; ++c) {
+				std::cout << "\n=== N = " << n << ", C = " << c << " ===\n";
+				for (int h = 0; h < H; ++h) {
+					for (int w_ = 0; w_ < W; ++w_) {
+						// Compute the linear index in your flattened array
+						int idx = n * C * H * W
+								  + c * H * W
+								  + h * W
+								  + w_;
+						std::cout << data->iloc(idx) << "\t";
+					}
+					std::cout << "\n";
+				}
+			}
+		}
+		std::cout << std::endl;
+	}
 
     Tensor Tensor::operator%(const Tensor &other) const {
 	    std::unique_ptr<DeviceData> data_new = data->mat_mult(other.getData(),
@@ -156,6 +146,8 @@ namespace ibatensor {
 		int C = (shape.size() >= 3) ? shape[2] : 1;
 		int N = (shape.size() >= 4) ? shape[3] : 1;
 		std::unique_ptr<DeviceData> data_new = data->relu(H, W, C, N);
+		std::vector<int> shape_new = {H, W, C, N};
+		return {shape_new , std::move(data_new)};
 	}
 
 	Tensor Tensor::conv2d(const Tensor &kernel, int padding, int stride) const {

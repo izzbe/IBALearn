@@ -1,9 +1,9 @@
-#include "deviceData.h"
-#include "CudaData.cuh"
-#include "CPUData.h"
+#include "IBATensor.h"
 #include <iostream>
 #include <vector>
 #include <cstdlib>
+
+using namespace ibatensor;
 
 void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     for (int n = 0; n < N; ++n) {
@@ -26,31 +26,17 @@ void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
 }
 
 int main() {
-    // We'll create a tensor (N=2, C=2, H=3, W=4).
-    // That is 48 elements total. We'll fill from -10..37
-    int N = 2;
-    int C = 2;
-    int H = 3;
-    int W = 4;
+    std::vector<float> A{1.00f, 2.00f, 3.00f, 4.00f, 5.00f, 6.00f, 7.00f, 8.00f, 9.00f};
+    std::vector<float> B{10.00f, 11.00f, 12.00f ,13.00f ,14.00f, 15.00f, 16.00f, 17.00f, 18.00f, 19.00f};
+    std::vector<int> shape_A{3, 3};
+    std::vector<int> shape_B{3, 3};
+    Tensor T_A(shape_A, A, CUDA);
+    Tensor T_B(shape_B, B, CUDA);
 
-    std::vector<float> hostData(N * C * H * W);
-    for (int i = 0; i < (N*C*H*W); i++) {
-        hostData[i] = static_cast<float>(i - 10); // values from -10..37
-    }
+    Tensor C = T_A * T_B;
 
-    // Create your GPU-based data object
-    std::unique_ptr<DeviceData> inputCuda = std::make_unique<CudaData>(hostData);
+    C.print();
+    std::cout << C.size << std::endl;
 
-    // Print the original data
-    std::cout << "=== Original Tensor (N=2, C=2, H=3, W=4) ===" << std::endl;
-    printDeviceData(inputCuda.get(), N, C, H, W);
-
-    // Call relu(H, W, C, N) => returns a new device data object with ReLU applied
-    std::unique_ptr<DeviceData> reluCuda = inputCuda->relu(H, W, C, N);
-
-    // Print the result
-    std::cout << "=== After ReLU ===" << std::endl;
-    printDeviceData(reluCuda.get(), N, C, H, W);
-
-    return 0;
+    std::cout << C.getData()->getSize() <<std::endl;
 }
