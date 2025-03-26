@@ -29,5 +29,8 @@ PYBIND11_MODULE(ibatensor, m) {
         .def("print", &ibatensor::Tensor::print)
         .def("get", [](ibatensor::Tensor& self, std::vector<int> indices) {
             return self.get(indices);
-        });
+        })
+        .def("__matmul__", &ibatensor::Tensor::operator%)
+        .def("conv2d", &ibatensor::Tensor::conv2d)
+        ;
 }
