@@ -45,6 +45,8 @@ namespace ibatensor {
         Tensor max_pool(int K, int padding, int stride) const;
         Tensor mat_transpose() const;
 
+        Tensor conv2d_backward(const Tensor &sigma, const Tensor &kernel, int padding, int stride) const;
+
     };
 
 }

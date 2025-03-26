@@ -49,6 +49,16 @@ public:
 
     std::unique_ptr<DeviceData> relu(int H, int W, int C, int N) const;
 
+//    ----------------------------------------------------- backwards ----------------------------------------------------
+    std::unique_ptr<DeviceData> conv2d_backward_wr_kernel(const DeviceData *sigma,
+                                            int C_k, int K, int H_in, int W_in, int C_in, int C_sigma, int H_sigma, int W_sigma, int P, int S, int N) const;
+
+    std::unique_ptr<DeviceData> conv2d_backward_wr_input(const DeviceData *sigma, const DeviceData *kernel, int H_in, int W_in, int K, int C_in_k, int C_out_k,
+                                                                 int sigma_H, int sigma_W, int sigma_C, int sigma_N, int P, int S) const;
+
+
+
+
 };
 
 #endif //CPUDATA_H

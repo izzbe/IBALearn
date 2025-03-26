@@ -220,6 +220,25 @@ namespace ibatensor {
 		return {size_new, std::move(data_new)};
 	}
 
+	Tensor Tensor::conv2d_backward(const Tensor &sigma, const Tensor &kernel, int padding, int stride) const {
+		int H_in = this->shape[0];
+		int W_in = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int C_in = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int N_in = (this->shape.size() >= 4) ? this->shape[3] : 1;
+
+		int H_sigma = sigma.shape[0];
+		int W_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int C_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int N_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		int K_kernel = kernel.shape[0];
+		int C_in_kernel = (kernel.shape.size() >= 3) ? kernel.shape[2] : 1;
+		int C_out_kernel = (kernel.shape.size() >= 4) ? kernel.shape[3] : 1;
+
+		std::unique_ptr<DeviceData>data_new = data->conv2d_backward(sigma.getData(), C_out_kernel, K_kernel, H_in, W_in, C_in, C_sigma, H_sigma, W_sigma, padding, stride, N_in);
+		std::vector<int> size_new = {K_kernel, K_kernel, C_in_kernel, C_out_kernel};
+		return {size_new, std::move(data_new)};
+	}
 
 
 }

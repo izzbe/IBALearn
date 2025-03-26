@@ -1,7 +1,7 @@
 #include "deviceData.h"
 #include "CudaData.cuh"
 #include "CPUData.h"
-#include "IBATensor.h"
+#include <random>
 
 void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     for (int n = 0; n < N; ++n) {
@@ -23,54 +23,40 @@ void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     std::cout << std::endl;
 }
 
+
 int main() {
-    // We'll create a tensor (N=2, C=2, H=3, W=4).
-    // That is 48 elements total. We'll fill from -10..37
-    int N = 2;
-    int C = 2;
-    int H = 3;
-    int W = 4;
+    int N = 5, C_in = 3, C_out = 4;
+    int H_in = 7, W_in = 7;
+    int K = 3, S = 2, P = 2;
 
-    std::vector<float> hostData(N * C * H * W);
-    for (int i = 0; i < (N*C*H*W); i++) {
-        hostData[i] = static_cast<float>(i - 10); // values from -10..37
-    }
+    int H_out = (H_in + 2 * P - K) / S + 1;
+    int W_out = H_out;
 
-    // Create your GPU-based data object
-    std::unique_ptr<DeviceData> inputCuda = std::make_unique<CudaData>(hostData);
+    // Allocate input and sigma
+    std::vector<float> x_data(N * C_in * H_in * W_in);
+    std::vector<float> sigma_data(N * C_out * H_out * W_out);
 
-    // Print the original data
-    std::cout << "=== Original Tensor (N=2, C=2, H=3, W=4) ===" << std::endl;
-    printDeviceData(inputCuda.get(), N, C, H, W);
+    // Fill with sequential values
+    for (int i = 0; i < x_data.size(); ++i) x_data[i] = static_cast<float>(i);
+    for (int i = 0; i < sigma_data.size(); ++i) sigma_data[i] = static_cast<float>(i);
 
-    // Call relu(H, W, C, N) => returns a new device data object with ReLU applied
-    std::unique_ptr<DeviceData> reluCuda = inputCuda->relu(H, W, C, N);
+    // Create CUDA wrapper
+    CudaData x(x_data);
+    CudaData sigma(sigma_data);
 
-    // Print the result
-    std::cout << "=== After ReLU ===" << std::endl;
-    printDeviceData(reluCuda.get(), N, C, H, W);
+    // Run conv2d_backward_wr_kernel
+    auto kernel_grad = x.conv2d_backward_wr_kernel(
+        &sigma,
+        C_out, K,
+        H_in, W_in,
+        C_in,
+        C_out,
+        H_out, W_out,
+        P, S, N
+    );
 
-    std::vector<float>
+    printDeviceData(kernel_grad.get(), C_out, C_in, K, K);
+    std::cout << std::endl;
 
-    const int m = 20000;
-    const int k = 20000;
-    const int n = 20000;
-
-    // Calculate the total number of elements in each matrix.
-    size_t sizeA = static_cast<size_t>(m) * k;
-    size_t sizeB = static_cast<size_t>(k) * n;
-
-    // Initialize matrices with some test values.
-    // For this example, we'll fill them with 1.0.
-    std::vector<float> A(sizeA, 1.0f);
-    std::vector<float> B(sizeB, 1.0f);
-
-    // Create CudaData objects using the vector constructor.
-    CudaData matrixA(A);
-    CudaData matrixB(B);
-
-    // Multiply the matrices.
-    // This multiplies an m x k matrix with a k x n matrix.
-    // The method returns a unique_ptr<DeviceData> that wraps the result.
-    std::unique_ptr<DeviceData> result = matrixA.mat_mult(&matrixB, m, k, n);
+    return 0;
 }
