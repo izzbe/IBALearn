@@ -40,13 +40,15 @@ int main() {
     for (int i = 0; i < x_data.size(); ++i) x_data[i] = static_cast<float>(i);
     for (int i = 0; i < sigma_data.size(); ++i) sigma_data[i] = static_cast<float>(i);
 
+
     // Create CUDA wrapper
-    CudaData x(x_data);
-    CudaData sigma(sigma_data);
+    std::unique_ptr<DeviceData> x = std::make_unique<CudaData>(x_data);
+    std::unique_ptr<DeviceData> sigma = std::make_unique<CudaData>(sigma_data);
 
     // Run conv2d_backward_wr_kernel
-    auto kernel_grad = x.conv2d_backward_wr_kernel(
-        &sigma,
+    std::cout << "func call:" << C_out << K << H_in << W_in << C_in << C_out << H_out << W_out << P << S << N << std::endl;
+    auto kernel_grad = x->conv2d_backward_wr_kernel(
+        sigma.get(),
         C_out, K,
         H_in, W_in,
         C_in,

@@ -18,7 +18,7 @@ add_library(IBADeviceData STATIC
         CPUData.cpp
         CudaData.cu
         deviceData.h
-        CudaDataBackwards.cu      # Headers are optional to list here, but it's okay for clarity
+        # Headers are optional to list here, but it's okay for clarity
 )
 
 add_executable(DeviceTester

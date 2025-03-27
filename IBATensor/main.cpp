@@ -25,56 +25,36 @@ void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     std::cout << std::endl;
 }
 
-using namespace ibatensor;
-
 int main() {
-    // --- Forward Pass ---
-    // Create an input tensor of shape [5, 5] with values from 1 to 25.
-    std::vector<int> input_shape = {5, 5};
-    std::vector<float> input_values = {
-        1,  2,  3,  4,  5,
-        6,  7,  8,  9, 10,
-       11, 12, 13, 14, 15,
-       16, 17, 18, 19, 20,
-       21, 22, 23, 24, 25
-   };
-    // Use CPU (0) for this test.
-    Tensor input(input_shape, input_values, CUDA);
+    int N = 2, C_in = 2, C_out = 3;
+    int H_in = 6, W_in = 6;
+    int K = 3, P = 2, S = 2;
 
-    // Create a convolution kernel of shape [3, 3].
-    // For example, use a kernel that performs a simple edge-detection:
-    //   1  0 -1
-    //   1  0 -1
-    //   1  0 -1
-    std::vector<int> kernel_shape = {3, 3};
-    std::vector<float> kernel_values = {
-        1,  0, -1,
-        1,  0, -1,
-        1,  0, -1
-   };
-    Tensor kernel(kernel_shape, kernel_values, CUDA);
+    int H_out = (H_in + 2 * P - K) / S + 1;
+    int W_out = H_out;
 
-    // Define convolution parameters: no padding, stride 1.
-    int padding = 0;
-    int stride  = 1;
+    int input_size = N * C_in * H_in * W_in;
+    int sigma_size = N * C_out * H_out * W_out;
+    int kernel_size = C_out * C_in * K * K;
 
-    // Perform the forward convolution.
-    Tensor output = input.conv2d(kernel, padding, stride);
-    std::cout << "Forward pass (Convolution output):" << std::endl;
-    output.print();
+    // Fill input and sigma with sequential values
+    std::vector<float> input_data(input_size), sigma_data(sigma_size), kernel_data(kernel_size);
+    for (int i = 0; i < input_size; ++i) input_data[i] = static_cast<float>(i);
+    for (int i = 0; i < sigma_size; ++i) sigma_data[i] = static_cast<float>(i);
+    for (int i = 0; i < kernel_size; ++i) kernel_data[i] = static_cast<float>(i);
 
-    // --- Backward Pass ---
-    // For the backward pass, assume the gradient (sigma) coming from the next layer
-    // is a tensor of ones with the same shape as the output.
-    // For a 5x5 input with a 3x3 kernel (padding=0, stride=1), output shape is [3, 3].
-    std::vector<int> sigma_shape = output.shape;  // Expected: {3, 3}
-    std::vector<float> sigma_values(sigma_shape[0] * sigma_shape[1], 1.0f);  // All ones.
-    Tensor sigma(sigma_shape, sigma_values, CPU);
+    Tensor input({N, C_in, H_in, W_in}, input_data, CUDA);
+    Tensor sigma({N, C_out, H_out, W_out}, sigma_data, CUDA);
+    Tensor kernel({C_out, C_in, K, K}, kernel_data, CUDA);
 
-    // Compute the gradient with respect to the input using conv2d_backward.
-    Tensor grad_input = input.conv2d_backward(sigma, kernel, padding, stride);
-    std::cout << "Backward pass (Gradient with respect to input):" << std::endl;
-    grad_input.print();
+    Tensor dW = conv2d_backward_wr_kernel(input, sigma, kernel, P, S);
+    Tensor dX = conv2d_backward_wr_input(input, sigma, kernel, P, S);
+
+    std::cout << "=== ∂L/∂W (kernel grad) ===" << std::endl;
+    dW.print();
+
+    std::cout << "=== ∂L/∂X (input grad) ===" << std::endl;
+    dX.print();
 
     return 0;
 }

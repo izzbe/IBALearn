@@ -41,7 +41,7 @@ namespace ibatensor {
         }
     }
 
-    Tensor::Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu) : size(size), shape(shape) {
+    Tensor::Tensor(const std::vector<int>& shape, std::vector<float> values, int cuda_or_cpu) : size(values.size()), shape(shape) {
         if (values.size()) {
             data = construct_data(values, cuda_or_cpu);
         }
@@ -86,10 +86,10 @@ namespace ibatensor {
 
     void Tensor::print() const {
 
-		int H = shape[0];
-		int W = (shape.size() >= 2) ? shape[1] : 1;
-		int C = (shape.size() >= 3) ? shape[2] : 1;
-		int N = (shape.size() >= 4) ? shape[3] : 1;
+		int N = shape[0];
+		int C = (shape.size() >= 2) ? shape[1] : 1;
+		int H = (shape.size() >= 3) ? shape[2] : 1;
+		int W = (shape.size() >= 4) ? shape[3] : 1;
 
 		for (int n = 0; n < N; ++n) {
 			for (int c = 0; c < C; ++c) {
@@ -145,23 +145,23 @@ namespace ibatensor {
 	}
 
 	Tensor Tensor::ReLu() const {
-		int H = shape[0];
-		int W = (shape.size() >= 2) ? shape[1] : 1;
-		int C = (shape.size() >= 3) ? shape[2] : 1;
-		int N = (shape.size() >= 4) ? shape[3] : 1;
+		int N = shape[0];
+		int C = (shape.size() >= 2) ? shape[1] : 1;
+		int H = (shape.size() >= 3) ? shape[2] : 1;
+		int W = (shape.size() >= 4) ? shape[3] : 1;
 		std::unique_ptr<DeviceData> data_new = data->relu(H, W, C, N);
-		std::vector<int> shape_new = {H, W, C, N};
+		std::vector<int> shape_new = {N, C, H, W};
 		return {shape_new , std::move(data_new)};
 	}
 
 	Tensor Tensor::conv2d(const Tensor &kernel, int padding, int stride) const {
-		int H = this->shape[0];
-		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
-		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
-		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+		int N = this->shape[0];
+		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int H = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int W = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
-		int K = kernel.shape[0];
-		int K_c = (kernel.shape.size() >= 3) ? kernel.shape[3] : 1;
+		int K_c = kernel.shape[0];
+		int K = (kernel.shape.size() >= 3) ? kernel.shape[3] : 1;
 
 		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
 
@@ -171,14 +171,14 @@ namespace ibatensor {
 															N, C, H, W, H_out, W_out, K,
 															padding, stride, K_c);
 
-		std::vector<int> size_new = {H_out, W_out, K_c, N};
+		std::vector<int> size_new = {N, K_c, H_out, W_out};
 
 		return {size_new, std::move(data_new)};
 	}
 
 	Tensor Tensor::avg_pool(int K, int padding, int stride) const {
-		int H = this->shape[0];
-		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int W = this->shape[0];
+		int H = (this->shape.size() >= 2) ? this->shape[1] : 1;
 		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
 		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
@@ -188,17 +188,17 @@ namespace ibatensor {
 
 		std::unique_ptr<DeviceData> data_new = data->avg_pool(N, C, H, W, H_out, W_out, K, padding, stride);
 
-		std::vector<int> size_new = {H_out, W_out, C, N};
+		std::vector<int> size_new = {N, C, H_out, W_out};
 
 		return {size_new, std::move(data_new)};
 
 	}
 
 	Tensor Tensor::max_pool(int K, int padding, int stride) const {
-		int H = this->shape[0];
-		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
-		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
-		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+		int N = this->shape[0];
+		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int H = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int W = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
 		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
 
@@ -206,42 +206,70 @@ namespace ibatensor {
 
 		std::unique_ptr<DeviceData> data_new = data->max_pool(N, C, H, W, H_out, W_out, K, padding, stride);
 
-		std::vector<int> size_new = {H_out, W_out, C, N};
+		std::vector<int> size_new = {N, C, H_out, W_out};
 
 		return {size_new, std::move(data_new)};
 
 	}
 
 	Tensor Tensor::mat_transpose() const {
-		int H = this->shape[0];
-		int W = (this->shape.size() >= 2) ? this->shape[1] : 1;
-		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
-		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+		int N = this->shape[0];
+		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int H = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int W = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
 		std::unique_ptr<DeviceData> data_new = data->mat_transpose(H, W, C, N);
-		std::vector<int> size_new = {H, W, C, N};
+		std::vector<int> size_new = {N, C, H, W};
 
 		return {size_new, std::move(data_new)};
 	}
 
-	Tensor Tensor::conv2d_backward(const Tensor &sigma, const Tensor &kernel, int padding, int stride) const {
-		int H_in = this->shape[0];
-		int W_in = (this->shape.size() >= 2) ? this->shape[1] : 1;
-		int C_in = (this->shape.size() >= 3) ? this->shape[2] : 1;
-		int N_in = (this->shape.size() >= 4) ? this->shape[3] : 1;
+	Tensor conv2d_backward_wr_kernel(const Tensor &input, const Tensor &sigma, const Tensor &kernel, int padding, int stride) {
 
-		int H_sigma = sigma.shape[0];
-		int W_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
-		int C_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
-		int N_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+		int N_in = input.shape[0];
+		int C_in = (input.shape.size() >= 2) ? input.shape[1] : 1;
+		int H_in = (input.shape.size() >= 3) ? input.shape[2] : 1;
+		int W_in = (input.shape.size() >= 4) ? input.shape[3] : 1;
 
-		int K_kernel = kernel.shape[0];
-		int C_in_kernel = (kernel.shape.size() >= 3) ? kernel.shape[2] : 1;
-		int C_out_kernel = (kernel.shape.size() >= 4) ? kernel.shape[3] : 1;
+		std::cout << "input: (" << H_in << ", " << W_in << ", " << C_in << ", " << N_in << ")" << std::endl;
+		int N_sigma = sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
 
-		std::unique_ptr<DeviceData>data_new = data->conv2d_backward(sigma.getData(), C_out_kernel, K_kernel, H_in, W_in, C_in, C_sigma, H_sigma, W_sigma, padding, stride, N_in);
-		std::vector<int> size_new = {K_kernel, K_kernel, C_in_kernel, C_out_kernel};
-		return {size_new, std::move(data_new)};
+		std::cout << "sigma: (" << H_sigma << ", " << W_sigma << ", " << C_sigma << ", " << N_sigma << ")" << std::endl;
+		int C_out_kernel = kernel.shape[0];
+		int C_in_kernel = (kernel.shape.size() >= 2) ? kernel.shape[1] : 1;
+		int K_kernel = (kernel.shape.size() >= 3) ? kernel.shape[2] : 1;
+
+		std::cout << "Kernel: (" << K_kernel << ", " << K_kernel << ", " << C_in_kernel << ", " << C_out_kernel << ")" << std::endl;
+
+		std::vector<int> shape_new = {C_out_kernel, C_in_kernel, K_kernel, K_kernel};
+		std::cout << "func call:" << C_out_kernel << K_kernel << H_in << W_in << C_in << C_sigma << H_sigma << W_sigma << padding << stride << N_in << std::endl;
+ 		std::unique_ptr<DeviceData>data_new = input.getData()->conv2d_backward_wr_kernel(sigma.data.get(), C_out_kernel, K_kernel, H_in, W_in, C_in, C_sigma, H_sigma, W_sigma, padding, stride, N_in);
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor conv2d_backward_wr_input(const Tensor &input, const Tensor &sigma, const Tensor &kernel, int padding, int stride) {
+		int N_in= input.shape[0];
+		int C_in = (input.shape.size() >= 2) ? input.shape[1] : 1;
+		int H_in = (input.shape.size() >= 3) ? input.shape[2] : 1;
+		int W_in = (input.shape.size() >= 4) ? input.shape[3] : 1;
+
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		int C_out_kernel = kernel.shape[0];
+		int C_in_kernel = (kernel.shape.size() >= 2) ? kernel.shape[1] : 1;
+		int K_kernel = (kernel.shape.size() >= 3) ? kernel.shape[2] : 1;
+
+		std::vector<int> shape_new = {N_in, C_in, H_in, W_in};
+		std::unique_ptr<DeviceData>data_new = input.data->conv2d_backward_wr_input(sigma.data.get(), kernel.data.get(), H_in, W_in, K_kernel, C_in_kernel, C_out_kernel,
+																					H_sigma, W_sigma, C_sigma, N_sigma, padding, stride);
+
+		return {shape_new, std::move(data_new)};
 	}
 
 
