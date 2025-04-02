@@ -5,7 +5,6 @@
 #include <vector>
 #include "IBADeviceData/deviceData.h"
 #include "IBADeviceData/CudaData.cuh"
-#include "IBADeviceData/CPUData.h"
 #ifndef IBATENSOR_H
 #define IBATENSOR_H
 
@@ -13,7 +12,7 @@ const int CUDA = 1;
 const int CPU = 0;
 
 namespace ibatensor {
-
+    struct max_pool_tensor_return;
     class Tensor {
      public:
         std::unique_ptr<DeviceData> data;
@@ -39,18 +38,29 @@ namespace ibatensor {
         Tensor operator*(const Tensor &other) const;
         Tensor operator+(const Tensor &other) const; //element wise addition
         Tensor operator-(const Tensor &other) const; //element wise subtraction
+        Tensor add_bias_for_conv2d(const Tensor &bias) const;
         Tensor ReLu() const;
         Tensor conv2d(const Tensor &kernel, int padding, int stride) const;
         Tensor avg_pool(int K, int padding, int stride) const;
-        Tensor max_pool(int K, int padding, int stride) const;
+
+
+        max_pool_tensor_return max_pool(int K, int padding, int stride) const;
         Tensor mat_transpose() const;
 
 
 
     };
 
+    struct max_pool_tensor_return {
+        Tensor output;
+        std::unique_ptr<int> max_inds;
+    };
+
     Tensor conv2d_backward_wr_kernel(const Tensor &input, const Tensor &sigma, const Tensor &kernel, int padding, int stride);
     Tensor conv2d_backward_wr_input(const Tensor &input, const Tensor &sigma, const Tensor &kernel, int padding, int stride);
+
+    Tensor max_pool_backward_wr_input(const Tensor &input, const Tensor &sigma, const int *max_inds, int K, int padding, int stride);
+    Tensor avg_pool_backward_wr_input(const Tensor &input, const Tensor &sigma, int K, int padding, int stride);
 
 }
 

@@ -1,6 +1,5 @@
 #include "deviceData.h"
 #include "CudaData.cuh"
-#include "CPUData.h"
 #include <random>
 
 void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
@@ -25,40 +24,48 @@ void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
 
 
 int main() {
-    int N = 5, C_in = 3, C_out = 4;
-    int H_in = 7, W_in = 7;
-    int K = 3, S = 2, P = 2;
+    const int N = 1, C = 1, H = 3, W = 3;
+    const int K = 2, P = 0, S = 0;
 
-    int H_out = (H_in + 2 * P - K) / S + 1;
-    int W_out = H_out;
+    const int H_out = (H + 2 * P - K) / S + 1;
+    const int W_out = (W + 2 * P - K) / S + 1;
+
+    // Input: 1x1x2x2
+    std::vector<float> input_data = {
+        1.0f, 3.0f, 4.0f,
+        3.0f, 1.0f, 4.0f,
+        1.0f, 2.0f, 3.0f
+    };
+
+    std::vector<float> sigma_data = {
+        1.0f // gradient from next layer, shape = (1, 1, 1, 1)
+    };
 
     // Allocate input and sigma
-    std::vector<float> x_data(N * C_in * H_in * W_in);
-    std::vector<float> sigma_data(N * C_out * H_out * W_out);
-
-    // Fill with sequential values
-    for (int i = 0; i < x_data.size(); ++i) x_data[i] = static_cast<float>(i);
-    for (int i = 0; i < sigma_data.size(); ++i) sigma_data[i] = static_cast<float>(i);
+    CudaData input(input_data);
+    CudaData sigma(sigma_data);
 
 
-    // Create CUDA wrapper
-    std::unique_ptr<DeviceData> x = std::make_unique<CudaData>(x_data);
-    std::unique_ptr<DeviceData> sigma = std::make_unique<CudaData>(sigma_data);
+    // === Forward: max_pool ===
+    auto pool_result = input.max_pool(N, C, H, W, H_out, W_out, K, P, S);
 
-    // Run conv2d_backward_wr_kernel
-    std::cout << "func call:" << C_out << K << H_in << W_in << C_in << C_out << H_out << W_out << P << S << N << std::endl;
-    auto kernel_grad = x->conv2d_backward_wr_kernel(
-        sigma.get(),
-        C_out, K,
-        H_in, W_in,
-        C_in,
-        C_out,
-        H_out, W_out,
-        P, S, N
+
+    std::cout << "=== MaxPool Output ===\n";
+    printDeviceData(pool_result.result.get(), N, C, H_out, W_out);
+
+    // === Backward ===
+    auto d_input = input.max_pool_backward_wr_input(
+        pool_result.max_inds.get(),
+        &sigma,
+        N, C, H, W,
+        N, C, H_out, W_out,
+        K, P, S
     );
 
-    printDeviceData(kernel_grad.get(), C_out, C_in, K, K);
-    std::cout << std::endl;
+    std::cout << "\n=== Grad w.r.t Input ===\n";
+    printDeviceData(d_input.get(), N, C, H, W);
+    cudaFree(pool_result.max_inds.release());
+
 
     return 0;
 }

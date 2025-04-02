@@ -15,7 +15,6 @@ set(CMAKE_CUDA_COMPILER "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.
 # Note: Typically, you do NOT include main.cpp in a static library.
 #       main.cpp is usually part of an executable target.
 add_library(IBADeviceData STATIC
-        CPUData.cpp
         CudaData.cu
         deviceData.h
         # Headers are optional to list here, but it's okay for clarity

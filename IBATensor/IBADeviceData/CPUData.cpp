@@ -86,43 +86,31 @@ void CPUData::set_index(int i, float val) {
     head[i] = val;
 }
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
-std::unique_ptr<DeviceData> CPUData::elemAdd(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CPUData::elemAdd(const DeviceData *other, int B_grouping, int B_stride) const {
     float *C = new float[size];
     for (int i = 0; i < size; i++) {
-        C[i] = head[i] + other->iloc(i % other->getSize());
+        C[i] = head[i] + other->iloc(i % B_grouping);
     }
     return std::make_unique<CPUData>(C, size);
 }
 
-std::unique_ptr<DeviceData> CPUData::elemSub(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CPUData::elemSub(const DeviceData *other, int B_grouping, int B_stride) const {
     float *C = new float[size];
     for (int i = 0; i < size; i++) {
-        C[i] = head[i] - other->iloc(i % other->getSize());
+        C[i] = head[i] - other->iloc(i % B_grouping);
     }
     return std::make_unique<CPUData>(C, size);
 }
-std::unique_ptr<DeviceData> CPUData::elemMult(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CPUData::elemMult(const DeviceData *other, int B_grouping, int B_stride) const {
     float *C = new float[size];
     for (int i = 0; i < size; i++) {
-        C[i] = head[i] * other->iloc(i % other->getSize());
+        C[i] = head[i] * other->iloc(i % B_grouping);
     }
     return std::make_unique<CPUData>(C, size);
 }
 
-std::unique_ptr<DeviceData> CPUData::mat_mult(const DeviceData *other, int m, int k, int n) const {
-    float *C = new float[ m * n ];
-
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            float sum = 0;
-            for (int cur = 0; cur < k; cur++) {
-                sum += head[i * k + cur] * other->iloc(n * cur + j);
-            }
-            C[i * n + j] = sum;
-        }
-    }
-
-    return std::make_unique<CPUData>(C, m * k );
+std::unique_ptr<DeviceData> CPUData::mat_mult(const DeviceData *other, int H, int shared_axis, int W, int N) const {
+    return std::make_unique<CPUData> (nullptr, 0);
 
 }
 

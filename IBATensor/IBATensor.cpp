@@ -10,9 +10,7 @@ namespace ibatensor {
 
 // ---------------------------------------------- constructors --------------------------------------------------------
 	std::unique_ptr<DeviceData> Tensor::construct_data(std::vector<float> data, int cuda_or_cpu) {
-    	if (cuda_or_cpu == CPU) {
-        	return std::make_unique<CPUData>(data);
-        } else if (cuda_or_cpu == CUDA) {
+		if (cuda_or_cpu == CUDA) {
         	return std::make_unique<CudaData>(data);
         }
 
@@ -111,35 +109,46 @@ namespace ibatensor {
 	}
 
     Tensor Tensor::operator%(const Tensor &other) const {
-		if (this->shape[1] != other.shape[0]) {
-			throw std::invalid_argument("invalid dimensions for matrix multiplication");
-		}
+		int N = this->shape[0];
+		int shared_axis = this->shape[3];
+		int H = this->shape[2];
+		int W = other.shape[3];
 
 	    std::unique_ptr<DeviceData> data_new = data->mat_mult(other.getData(),
-	                                                            this->shape[0],
-	                                                            this->shape[1],
-	                                                            other.shape[1]);
-	    std::vector<int> shape_new = {this->shape[0], other.shape[1]};
+	                                                            H,
+	                                                            shared_axis,
+	                                                            W,
+	                                                            N);
+	    std::vector<int> shape_new = {N, 1, H, W};
 	    return {shape_new, std::move(data_new)};
 	}
 
     Tensor Tensor::operator*(const Tensor &other) const {
-	    std::unique_ptr<DeviceData> data_new = data->elemMult(other.getData());
-	    std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+	    std::unique_ptr<DeviceData> data_new = data->elemMult(other.getData(), other.getData()->getSize(), 1);
+	    std::vector<int> shape_new = {this->shape[0], this->shape[1], this->shape[2], this->shape[3]};
 
 	    return {shape_new, std::move(data_new)};
 	}
 
     Tensor Tensor::operator+(const Tensor &other) const {
-	    std::unique_ptr<DeviceData> data_new = data->elemAdd(other.getData());
-	    std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+	    std::unique_ptr<DeviceData> data_new = data->elemAdd(other.getData(), other.getData()->getSize(), 1);
+	    std::vector<int> shape_new = {this->shape[0], this->shape[1], this->shape[2], this->shape[3]};
 
 	    return {shape_new, std::move(data_new)};
 	}
 
 	Tensor Tensor::operator-(const Tensor &other) const {
-		std::unique_ptr<DeviceData> data_new = data->elemSub(other.getData());
-		std::vector<int> shape_new = {this->shape[0], this->shape[1]};
+		std::unique_ptr<DeviceData> data_new = data->elemSub(other.getData(), other.getData()->getSize(), 1);
+		std::vector<int> shape_new = {this->shape[0], this->shape[1], this->shape[2], this->shape[3]};
+
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor Tensor::add_bias_for_conv2d(const Tensor &bias) const {
+		int B_grouping = this->shape[1];
+		int B_stride = this->shape[2] * this->shape[3];
+		std::unique_ptr<DeviceData> data_new = data->elemAdd(bias.getData(), B_grouping, B_stride);
+		std::vector<int> shape_new = {this->shape[0], this->shape[1], this->shape[2], this->shape[3]};
 
 		return {shape_new, std::move(data_new)};
 	}
@@ -177,10 +186,10 @@ namespace ibatensor {
 	}
 
 	Tensor Tensor::avg_pool(int K, int padding, int stride) const {
-		int W = this->shape[0];
-		int H = (this->shape.size() >= 2) ? this->shape[1] : 1;
-		int C = (this->shape.size() >= 3) ? this->shape[2] : 1;
-		int N = (this->shape.size() >= 4) ? this->shape[3] : 1;
+		int N= this->shape[0];
+		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;
+		int H = (this->shape.size() >= 3) ? this->shape[2] : 1;
+		int W = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
 		int H_out = ((H + ( 2 * padding ) - K) / stride) + 1;
 
@@ -194,7 +203,7 @@ namespace ibatensor {
 
 	}
 
-	Tensor Tensor::max_pool(int K, int padding, int stride) const {
+	max_pool_tensor_return Tensor::max_pool(int K, int padding, int stride) const {
 		int N = this->shape[0];
 		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;
 		int H = (this->shape.size() >= 3) ? this->shape[2] : 1;
@@ -204,11 +213,11 @@ namespace ibatensor {
 
 		int W_out = ((W + ( 2 * padding ) - K) / stride) + 1;
 
-		std::unique_ptr<DeviceData> data_new = data->max_pool(N, C, H, W, H_out, W_out, K, padding, stride);
+		DeviceData::max_pool_return data_new = data->max_pool(N, C, H, W, H_out, W_out, K, padding, stride);
 
 		std::vector<int> size_new = {N, C, H_out, W_out};
 
-		return {size_new, std::move(data_new)};
+		return {Tensor(size_new, std::move(data_new.result)), std::move(data_new.max_inds)};
 
 	}
 
@@ -219,7 +228,7 @@ namespace ibatensor {
 		int W = (this->shape.size() >= 4) ? this->shape[3] : 1;
 
 		std::unique_ptr<DeviceData> data_new = data->mat_transpose(H, W, C, N);
-		std::vector<int> size_new = {N, C, H, W};
+		std::vector<int> size_new = {N, C, W, H};
 
 		return {size_new, std::move(data_new)};
 	}
@@ -269,6 +278,41 @@ namespace ibatensor {
 		std::unique_ptr<DeviceData>data_new = input.data->conv2d_backward_wr_input(sigma.data.get(), kernel.data.get(), H_in, W_in, K_kernel, C_in_kernel, C_out_kernel,
 																					H_sigma, W_sigma, C_sigma, N_sigma, padding, stride);
 
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor max_pool_backward_wr_input(const Tensor &input, const Tensor &sigma, const int *max_inds, int K, int padding, int stride) {
+		int N_in= input.shape[0];
+		int C_in = (input.shape.size() >= 2) ? input.shape[1] : 1;
+		int H_in = (input.shape.size() >= 3) ? input.shape[2] : 1;
+		int W_in = (input.shape.size() >= 4) ? input.shape[3] : 1;
+
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = input.data->max_pool_backward_wr_input(max_inds, sigma.data.get(), N_in, C_in, H_in, W_in, N_sigma, C_sigma, H_sigma, W_sigma, K, padding, stride );
+		std::vector<int> size_new = {N_in, C_in, H_in, W_in};
+
+		return {size_new, std::move(data_new)};
+	}
+
+	Tensor avg_pool_backward_wr_input(const Tensor &input, const Tensor &sigma, int K, int padding, int stride) {
+		int N_in= input.shape[0];
+		int C_in = (input.shape.size() >= 2) ? input.shape[1] : 1;
+		int H_in = (input.shape.size() >= 3) ? input.shape[2] : 1;
+		int W_in = (input.shape.size() >= 4) ? input.shape[3] : 1;
+
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = input.data->avg_pool_backward_wr_input(sigma.data.get(), N_in, C_in, H_in, W_in,
+																						N_sigma, C_sigma, H_sigma, W_sigma,
+																						K, padding, stride);
+		std::vector<int> shape_new = {N_in, C_in, H_in, W_in};
 		return {shape_new, std::move(data_new)};
 	}
 

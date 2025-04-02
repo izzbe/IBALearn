@@ -25,36 +25,38 @@ void printDeviceData(const DeviceData* data, int N, int C, int H, int W) {
     std::cout << std::endl;
 }
 
+
 int main() {
-    int N = 2, C_in = 2, C_out = 3;
-    int H_in = 6, W_in = 6;
-    int K = 3, P = 2, S = 2;
+    const int N = 1, C = 1, H = 2, W = 2;
+    const int K = 2, P = 0, S = 2;
 
-    int H_out = (H_in + 2 * P - K) / S + 1;
-    int W_out = H_out;
+    // Compute output size
+    const int H_out = (H + 2 * P - K) / S + 1;
+    const int W_out = (W + 2 * P - K) / S + 1;
 
-    int input_size = N * C_in * H_in * W_in;
-    int sigma_size = N * C_out * H_out * W_out;
-    int kernel_size = C_out * C_in * K * K;
+    // Input: shape (1, 1, 2, 2)
+    std::vector<float> input_data = {
+        1.0f, 2.0f,
+        3.0f, 4.0f
+    };
 
-    // Fill input and sigma with sequential values
-    std::vector<float> input_data(input_size), sigma_data(sigma_size), kernel_data(kernel_size);
-    for (int i = 0; i < input_size; ++i) input_data[i] = static_cast<float>(i);
-    for (int i = 0; i < sigma_size; ++i) sigma_data[i] = static_cast<float>(i);
-    for (int i = 0; i < kernel_size; ++i) kernel_data[i] = static_cast<float>(i);
+    Tensor input({N, C, H, W}, input_data, CUDA);
+    std::cout << "Input:\n";
+    input.print();
 
-    Tensor input({N, C_in, H_in, W_in}, input_data, CUDA);
-    Tensor sigma({N, C_out, H_out, W_out}, sigma_data, CUDA);
-    Tensor kernel({C_out, C_in, K, K}, kernel_data, CUDA);
+    // === Forward: avg_pool ===
+    Tensor pooled = input.avg_pool(K, P, S);
+    std::cout << "\nAvgPool Output:\n";
+    pooled.print(); // Should be avg([1,2,3,4]) = 2.5
 
-    Tensor dW = conv2d_backward_wr_kernel(input, sigma, kernel, P, S);
-    Tensor dX = conv2d_backward_wr_input(input, sigma, kernel, P, S);
+    // === Backward: assume dL/dY = 1.0 ===
+    std::vector<float> sigma_data = {1.0f};
+    Tensor sigma({N, C, H_out, W_out}, sigma_data, CUDA);
 
-    std::cout << "=== ∂L/∂W (kernel grad) ===" << std::endl;
-    dW.print();
+    Tensor dX = avg_pool_backward_wr_input(input, sigma, K, P, S);
 
-    std::cout << "=== ∂L/∂X (input grad) ===" << std::endl;
-    dX.print();
+    std::cout << "\nGrad w.r.t. Input (AvgPool Backward):\n";
+    dX.print(); // Expect each value = 1.0 / 4 = 0.25
 
     return 0;
 }

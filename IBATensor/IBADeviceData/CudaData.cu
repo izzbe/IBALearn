@@ -90,50 +90,51 @@ void CudaData::set_index(int i, float val) {
 // ---------------------------------------------------------------------------------------------------------------------------------
 
 // ------------------------------------------------ Decls -------------------------------------------------------------
-__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o);
-__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n);
+__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o, int B_grouping, int B_stride);
+__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B,  int H, int shared_axis, int W, int N);
 __host__ std::unique_ptr<DeviceData> conv2d_base(const float *in, const float *kern, int N, int C_in,
                                                  int H, int W, int H_out, int W_out, int K, int P, int S, int C_out);
-__host__ std::unique_ptr<DeviceData> pool_base(const float *in, int N, int C_in,
-                                                 int H, int W, int H_out, int W_out, int K, int P, int S, Pool option);
+__host__ DeviceData::max_pool_return max_pool_base(const float *in, int N, int C_in,
+                                                 int H, int W, int H_out, int W_out, int K, int P, int S);
 __host__ std::unique_ptr<DeviceData> mat_transpose_base(const float *in, int H, int W, int C, int N);
 __host__ std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, int C, int N);
 
+__global__ void avg_pool2d_kernel(const float *in, float *out, int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S);
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
-std::unique_ptr<DeviceData> CudaData::elemAdd(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CudaData::elemAdd(const DeviceData *other, int B_grouping, int B_stride) const {
       const CudaData *type_check = dynamic_cast<const CudaData*>(other);
       if (!type_check) {
             throw std::logic_error("Cannot operate on GPU and CPU allocated memory");
       }
 
-      return elem_wise(this, type_check, Operation::Add);
+      return elem_wise(this, type_check, Operation::Add, B_grouping, B_stride);
 }
 
-std::unique_ptr<DeviceData> CudaData::elemSub(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CudaData::elemSub(const DeviceData *other, int B_grouping, int B_stride) const {
       const CudaData *type_check = dynamic_cast<const CudaData*>(other);
       if (!type_check) {
             throw std::logic_error("Cannot operate on GPU and CPU allocated memory");
       }
 
-      return elem_wise(this, type_check, Operation::Sub);
+      return elem_wise(this, type_check, Operation::Sub, B_grouping, B_stride);
 }
 
-std::unique_ptr<DeviceData> CudaData::elemMult(const DeviceData *other) const {
+std::unique_ptr<DeviceData> CudaData::elemMult(const DeviceData *other, int B_grouping, int B_stride) const {
       const CudaData *type_check = dynamic_cast<const CudaData*>(other);
       if (!type_check) {
             throw std::logic_error("Cannot operate on GPU and CPU allocated memory");
       }
 
-      return elem_wise(this, type_check, Operation::Mult);
+      return elem_wise(this, type_check, Operation::Mult, B_grouping, B_stride);
 }
 
-std::unique_ptr<DeviceData> CudaData::mat_mult(const DeviceData *other, int m, int k, int n) const {
+std::unique_ptr<DeviceData> CudaData::mat_mult(const DeviceData *other, int H, int shared_axis, int W, int N) const {
       const CudaData *type_check = dynamic_cast<const CudaData*>(other);
       if (!type_check) {
             throw std::logic_error("Cannot operate on GPU and CPU allocated memory");
       }
 
-      return mat_mult_base(this, type_check, m, k, n);
+      return mat_mult_base(this, type_check, H, shared_axis, W, N);
 }
 
 
@@ -149,12 +150,24 @@ std::unique_ptr<DeviceData> CudaData::conv2d(const DeviceData *kern, int N, int 
 
 std::unique_ptr<DeviceData> CudaData::avg_pool(int N, int C_in, int H, int W, int H_out, int W_out,
                                                int K, int P, int S) const {
-      return pool_base(head, N, C_in, H, W, H_out, W_out, K, P, S, Pool::Average);
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((H_out + TILE_SIZE - 1) / TILE_SIZE,  (W_out + TILE_SIZE - 1) / TILE_SIZE, C_in * N);
+
+      float *out;
+      int size = H_out * W_out * C_in * N;
+
+      cudaMalloc(&out, size * sizeof(float));
+
+      avg_pool2d_kernel<<<gridDim, blockDim>>>(head, out, N, C_in, H, W, H_out, W_out, K, P, S);
+
+      cudaDeviceSynchronize();
+
+      return std::make_unique<CudaData>(out, size);
 }
 
-std::unique_ptr<DeviceData> CudaData::max_pool(int N, int C_in, int H, int W, int H_out, int W_out,
+DeviceData::max_pool_return CudaData::max_pool(int N, int C_in, int H, int W, int H_out, int W_out,
                                                int K, int P, int S) const {
-      return pool_base(head, N, C_in, H, W, H_out, W_out, K, P, S, Pool::Max);
+      return max_pool_base(head, N, C_in, H, W, H_out, W_out, K, P, S);
 }
 
 
@@ -171,24 +184,25 @@ __global__ void set_index_kernel(float A[], int i, float val) {
 	A[i] = val;
 }
 
-__global__ void mat_mult_kernel(float A[], float B[], float C[], int m, int k, int n) {
+__global__ void mat_mult_kernel(float A[], float B[], float C[], int H, int shared_axis, int W, int N) {
       int global_row = blockIdx.y * TILE_SIZE + threadIdx.y;
       int global_col = blockIdx.x * TILE_SIZE + threadIdx.x;
+      int batch_n = blockIdx.z;
 
       __shared__ float shared_A[TILE_SIZE][TILE_SIZE];
       __shared__ float shared_B[TILE_SIZE][TILE_SIZE];
 
       float c_val = 0.0f;
 
-      for (int i = 0; i < (k + TILE_SIZE - 1) / TILE_SIZE; ++i) {
-            if (global_row < m && (i * TILE_SIZE + threadIdx.x) < k) {
-                  shared_A[threadIdx.y][threadIdx.x] = A[global_row * k + (i * TILE_SIZE + threadIdx.x)];
+      for (int i = 0; i < (shared_axis + TILE_SIZE - 1) / TILE_SIZE; ++i) {
+            if (global_row < H && (i * TILE_SIZE + threadIdx.x) < shared_axis) {
+                  shared_A[threadIdx.y][threadIdx.x] = A[batch_n * H * shared_axis + global_row * shared_axis + (i * TILE_SIZE + threadIdx.x)];
             } else {
                   shared_A[threadIdx.y][threadIdx.x] = 0.0f;
             }
 
-            if (global_col < n && (i * TILE_SIZE + threadIdx.y) < k) {
-                  shared_B[threadIdx.y][threadIdx.x] = B[(i * TILE_SIZE + threadIdx.y) * n + global_col];
+            if (global_col < W && (i * TILE_SIZE + threadIdx.y) < shared_axis) {
+                  shared_B[threadIdx.y][threadIdx.x] = B[(i * TILE_SIZE + threadIdx.y) * W + global_col];
             } else {
                   shared_B[threadIdx.y][threadIdx.x] = 0.0f;
             }
@@ -202,32 +216,32 @@ __global__ void mat_mult_kernel(float A[], float B[], float C[], int m, int k, i
             __syncthreads();
       }
 
-      if (global_row < m && global_col < n) {
-            C[global_row * n + global_col] = c_val;
+      if (global_row < H && global_col < W) {
+            C[batch_n * H * W + global_row * W + global_col] = c_val;
       }
 }
 
-__global__ void mat_add_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size) {
+__global__ void mat_add_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size, int B_grouping, int B_stride) {
       int global_ind = blockIdx.x * blockDim.x + threadIdx.x;
 
       if (global_ind < c_size && global_ind < a_size) {
-            C[global_ind] = A[global_ind] + B[global_ind % b_size];
+            C[global_ind] = A[global_ind] + B[(global_ind / B_stride) % B_grouping];
       }
 }
 
-__global__ void mat_sub_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size) {
+__global__ void mat_sub_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size, int B_grouping, int B_stride) {
       int global_ind = blockIdx.x * blockDim.x + threadIdx.x;
 
       if (global_ind < c_size && global_ind < a_size) {
-            C[global_ind] = A[global_ind] - B[global_ind % b_size];
+            C[global_ind] = A[global_ind] - B[(global_ind / B_stride) % B_grouping];
       }
 }
 
-__global__ void mat_element_mult_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size) {
+__global__ void mat_element_mult_kernel(float A[], float B[], float C[], int a_size, int b_size, int c_size, int B_grouping, int B_stride) {
       int global_ind = blockIdx.x * blockDim.x + threadIdx.x;
 
       if (global_ind < c_size && global_ind < a_size) {
-            C[global_ind] = A[global_ind] * B[global_ind % b_size];
+            C[global_ind] = A[global_ind] * B[(global_ind / B_stride) % B_grouping];
       }
 }
 
@@ -259,11 +273,8 @@ __global__ void conv2d_kernel(const float *in, const float *kern, float *out, in
 
 }
 
-int K = 3;     // kernel
-int S = 2;     // stride
-int P = 1;
 
-__global__ void max_pool2d_kernel(const float *in, float *out, int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S) {
+__global__ void max_pool2d_kernel(const float *in, float *out, int *max_inds, int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S) {
       int out_x = blockIdx.x * blockDim.x + threadIdx.x;
       int out_y = blockIdx.y * blockDim.y + threadIdx.y;
       int out_c = blockIdx.z % C_in;
@@ -275,6 +286,7 @@ __global__ void max_pool2d_kernel(const float *in, float *out, int N, int C_in, 
       int input_y = out_y * S - P;
 
       float cur_max = -FLT_MAX;
+      float cur_max_ind = 0;
 
       for (int i = 0; i < K; ++i) {
             for (int j = 0; j < K; ++j) {
@@ -283,13 +295,14 @@ __global__ void max_pool2d_kernel(const float *in, float *out, int N, int C_in, 
                   if (read_x >= 0 && read_x < W && read_y >= 0 && read_y < H) {
                         if (in[batch_n * C_in * H * W + out_c * H * W + read_y * W + read_x] > cur_max) {
                               cur_max = in[batch_n * C_in * H * W + out_c * H * W + read_y * W + read_x];
+                              cur_max_ind = batch_n * C_in * H * W + out_c * H * W + read_y * W + read_x;
                         }
                   }
             }
       }
 
       out[batch_n * C_in * H_out * W_out + out_c * H_out * W_out + out_y * W_out + out_x] = cur_max;
-
+      max_inds[batch_n * C_in * H_out * W_out + out_c * H_out * W_out + out_y * W_out + out_x] = cur_max_ind;
 }
 
 __global__ void avg_pool2d_kernel(const float *in, float *out, int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S) {
@@ -352,15 +365,15 @@ __global__ void relu_kernel(const float *in, float * out, int H, int W, int C, i
 
 // -------------------------------------------------- Helpers --------------------------------------------------------
 
-__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B, int m, int k, int n) {
+__host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B,  int H, int shared_axis, int W, int N) {
       dim3 blockDim(TILE_SIZE, TILE_SIZE);
-      dim3 gridDim ((n+TILE_SIZE - 1) / TILE_SIZE, (m+TILE_SIZE -1) / TILE_SIZE);
+      dim3 gridDim ((W + TILE_SIZE - 1) / TILE_SIZE, (H + TILE_SIZE -1) / TILE_SIZE, N);
       float *C;
-      int size = m * n;
+      int size = H * W * N;
 
       cudaMalloc(&C, size * sizeof(float));
 
-      mat_mult_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, m, k, n);
+      mat_mult_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, H, shared_axis, W, N);
 
       cudaDeviceSynchronize();
 
@@ -389,28 +402,27 @@ __host__ std::unique_ptr<DeviceData> conv2d_base(const float *in, const float *k
 
 
 
-__host__ std::unique_ptr<DeviceData> pool_base(const float *in, int N, int C_in,
-                                                 int H, int W, int H_out, int W_out, int K, int P, int S, Pool option) {
+__host__ DeviceData::max_pool_return max_pool_base(const float *in, int N, int C_in,
+                                                 int H, int W, int H_out, int W_out, int K, int P, int S) {
 
       dim3 blockDim(TILE_SIZE, TILE_SIZE);
       dim3 gridDim((H_out + TILE_SIZE - 1) / TILE_SIZE,  (W_out + TILE_SIZE - 1) / TILE_SIZE, C_in * N);
 
       float *out;
+      int *max_inds;
       int size = H_out * W_out * C_in * N;
 
       cudaMalloc(&out, size * sizeof(float));
+      cudaMalloc(&max_inds, size *sizeof(int));
+      max_pool2d_kernel<<<gridDim, blockDim>>>(in, out, max_inds, N, C_in, H, W, H_out, W_out, K, P, S);
 
-      if(option == Pool::Average) {
-            avg_pool2d_kernel<<<gridDim, blockDim>>>(in, out, N, C_in, H, W, H_out, W_out, K, P, S);
-      } else if (option == Pool::Max) {
-            max_pool2d_kernel<<<gridDim, blockDim>>>(in, out, N, C_in, H, W, H_out, W_out, K, P, S);
-      }
       cudaDeviceSynchronize();
 
-      return std::make_unique<CudaData> (out, size);
+      std::unique_ptr<int> max_ind_return(max_inds);
 
-
+      return {std::make_unique<CudaData> (out, size), std::move(max_ind_return)};
 }
+
 
 __host__ std::unique_ptr<DeviceData> mat_transpose_base(const float *in, int H, int W, int C, int N) {
       dim3 blockDim(TILE_SIZE, TILE_SIZE);
@@ -439,7 +451,7 @@ __host__ std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, in
       return std::make_unique<CudaData>(out, size);
 }
 
-__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o) {
+__host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o, int B_grouping, int B_stride) {
       dim3 blockDim(TILE_SIZE * TILE_SIZE);
       dim3 gridDim((A->getSize() + (TILE_SIZE*TILE_SIZE) - 1) / (TILE_SIZE * TILE_SIZE));
       float *C;
@@ -448,11 +460,11 @@ __host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData
       cudaMalloc(&C, size);
 
       if (o == Operation::Add) {
-            mat_add_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize());
+            mat_add_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize(), B_grouping, B_stride);
       } else if (o == Operation::Sub) {
-            mat_sub_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize());
+            mat_sub_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize(), B_grouping, B_stride);
       } else if (o == Operation::Mult) {
-            mat_element_mult_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize());
+            mat_element_mult_kernel<<<gridDim, blockDim>>>(A->getData(), B->getData(), C, A->getSize(), B->getSize(), A->getSize(), B_grouping, B_stride);
       }
 
       cudaDeviceSynchronize();
@@ -478,6 +490,15 @@ __global__ void rotate_180_kernel(int H, int W, int C, int N, float *in, float *
 
 __global__ void conv2d_backward_kernel_wr_input(const float *sigma, const float *kernel, int H_in, int W_in, int K, int C_in_k, int C_out_k,
                                                                  int sigma_H, int sigma_W, int sigma_C, int sigma_N, int P, int S, float *out);
+__global__ void max_pool_backward_kernel_wr_input(const int *max_inds, const float *sigma, float *out,
+                                                  int N_in, int C_in, int H_in, int W_in,
+                                                  int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                                  int K, int P, int S);
+
+__global__ void avg_pool_backward_wr_input_kernel(const float *sigma,
+                                              int N_in, int C_in, int H_in, int W_in,
+                                              int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                              int K, int P, int S, float *out);
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
 std::unique_ptr<DeviceData> CudaData::conv2d_backward_wr_kernel(const DeviceData *sigma,
                                             int C_k, int K, int H_in, int W_in, int C_in, int C_sigma, int H_sigma, int W_sigma, int P, int S, int N) const {
@@ -515,6 +536,42 @@ std::unique_ptr<DeviceData> CudaData::conv2d_backward_wr_input(const DeviceData 
     return std::make_unique<CudaData>(out, size);
 }
 
+std::unique_ptr<DeviceData> CudaData::max_pool_backward_wr_input(const int *max_inds, const DeviceData *sigma,
+                                                            int N_in, int C_in, int H_in, int W_in,
+                                                            int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                                            int K, int P, int S) const {
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((W_sigma + TILE_SIZE - 1) / TILE_SIZE, (H_sigma + TILE_SIZE - 1) / TILE_SIZE, C_sigma * N_sigma);
+      int size = N_in *C_in *H_in * W_in;
+      float *out;
+      cudaMalloc(&out, sizeof(float) * size);
+      cudaMemset(out, 0.0f, sizeof(float) * size);
+
+      max_pool_backward_kernel_wr_input<<<gridDim, blockDim>>>(max_inds, sigma->getData(), out, N_in, C_in, H_in, W_in, N_sigma, C_sigma, H_sigma, W_sigma, K, P, S);
+      cudaDeviceSynchronize();
+
+      return std::make_unique<CudaData>(out, size);
+}
+
+std::unique_ptr<DeviceData> CudaData::avg_pool_backward_wr_input(const DeviceData *sigma,
+                                                             int N_in, int C_in, int H_in, int W_in,
+                                                             int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                                             int K, int P, int S) const {
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((W_in + TILE_SIZE - 1) / TILE_SIZE, (H_in + TILE_SIZE - 1) / TILE_SIZE, C_in * N_in);
+
+      int size = N_in * C_in * H_in * W_in;
+
+      float *out;
+
+      cudaMalloc(&out, size * sizeof(float));
+
+      avg_pool_backward_wr_input_kernel<<<gridDim, blockDim>>>(sigma->getData(), N_in, C_in, H_in, W_in,
+                                                                  N_sigma, C_sigma, H_sigma, W_sigma,
+                                                                  K, P, S, out);
+
+      return std::make_unique<CudaData>(out, size);
+}
 // ------------------------------------------------- Kernels ------------------------------------------------------------
 
 __global__ void conv2d_backward_kernel_wr_input(const float *sigma, const float *kernel, int H_in, int W_in, int K, int C_in_k, int C_out_k,
@@ -592,5 +649,65 @@ __global__ void conv2d_backward_kernel(const float *sigma, const float *input,
 
 }
 
+__global__ void max_pool_backward_kernel_wr_input(const int *max_inds, const float *sigma, float *out,
+                                                  int N_in, int C_in, int H_in, int W_in,
+                                                  int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                                  int K, int P, int S) {
+      int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+      int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+      int out_c = blockIdx.z % C_sigma;
+      int out_n = blockIdx.z / C_sigma;
+
+      if (out_x < 0 || out_y < 0 || out_c < 0 || out_n < 0 || out_x >= W_sigma || out_y >= H_sigma || out_c >= C_sigma || out_n >= N_sigma) {
+            return;
+      }
+
+      int ind_pos = max_inds[out_n * C_sigma * H_sigma * W_sigma + out_c * H_sigma * W_sigma + out_y *W_sigma + out_x];
+      float sigma_val = sigma[out_n * C_sigma * H_sigma * W_sigma + out_c * H_sigma * W_sigma + out_y *W_sigma + out_x];
+
+      atomicAdd(&out[ind_pos], sigma_val);
+
+}
+
+__global__ void avg_pool_backward_wr_input_kernel(const float *sigma,
+                                              int N_in, int C_in, int H_in, int W_in,
+                                              int N_sigma, int C_sigma, int H_sigma, int W_sigma,
+                                              int K, int P, int S, float *out) {
+      int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+      int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+      int out_c = blockIdx.z % C_in;
+      int out_n = blockIdx.z / C_in;
+
+      if (out_x < 0 || out_y < 0 || out_c < 0 || out_n < 0 || out_x >= W_in || out_y >= H_in || out_c >= C_in || out_n >= N_in) {
+            return;
+      }
+
+      float K_square = K * K;
+
+      float grad_val = 0.0f;
+      for (int i = 0; i < K; i++) {
+            for (int j = 0; j < K; j++) {
+                  int current_top_left_x = out_x - i;
+                  int current_top_left_y = out_y - j;
+                  if ( (current_top_left_x + P) % S != 0 || (current_top_left_y + P) % S != 0 ) {
+                        continue;
+                  }
+
+                  if ( current_top_left_x < -P || current_top_left_y < -P || current_top_left_x > (W_in + 2 * P - K) || current_top_left_y > (H_in + 2 * P - K) ) {
+                        continue;
+                  }
+
+                  int sigma_val_x = (current_top_left_x + P) / S;
+                  int sigma_val_y = (current_top_left_y + P) / S;
+
+                  grad_val += (1 / K_square) * sigma[ out_n * N_sigma * C_sigma * H_sigma * W_sigma +
+                                                      out_c * H_sigma * W_sigma +
+                                                      sigma_val_y * W_sigma +
+                                                      sigma_val_x];
+
+            }
+      }
+      out[out_n * C_in * H_in * W_in + out_c * H_in * W_in + out_y * W_in + out_x] = grad_val;
 
 
+}
