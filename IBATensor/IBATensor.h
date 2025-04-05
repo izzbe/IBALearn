@@ -33,7 +33,7 @@ namespace ibatensor {
         void set(std::vector<int> indices, float value);
         void print_shape() const;
         void print() const;
-        std::string Tensor::to_string() const;
+        std::string to_string() const;
         const DeviceData *getData() const;
 
         Tensor operator%(const Tensor &other) const;

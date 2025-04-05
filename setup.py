@@ -78,7 +78,7 @@ ext_modules = [
         'IBALearn.neural_network.ibatensor',
         [
             'IBATensor/IBATensor.cpp', 
-            'IBATensor/IBATensor_binding.cpp',
+            'IBATensor/iba_tensor_binding.cpp',
             'IBATensor/IBADeviceData/CPUData.cpp',
             'IBATensor/IBADeviceData/CudaData.cu'  
         ],
