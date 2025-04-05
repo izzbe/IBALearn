@@ -6,6 +6,7 @@
 #include <numeric>
 #include <iostream>
 #include <memory>
+#include <sstream>
 namespace ibatensor {
 
 // ---------------------------------------------- constructors --------------------------------------------------------
@@ -57,6 +58,8 @@ namespace ibatensor {
                                                                                       size(this->data->getSize()),
 																					  shape(shape) {}
 
+	Tensor::Tensor(Tensor &&other) : shape(std::move(other.shape)), data(std::move(other.data)) {}
+
 // ---------------------------------------------- getters/setters --------------------------------------------------------
     float Tensor::get(std::vector<int> indices) const {
         if (indices.size() != shape.size()) {
@@ -81,6 +84,30 @@ namespace ibatensor {
 
 // ---------------------------------------------- matrixops --------------------------------------------------------
 
+	std::string Tensor::to_string() const {
+		std::stringstream ss;
+
+		int N = (shape.size() >= 1) ? shape[0] : 1;
+		int C = (shape.size() >= 2) ? shape[1] : 1;
+		int H = (shape.size() >= 3) ? shape[2] : 1;
+		int W = (shape.size() >= 4) ? shape[3] : 1;
+
+		for (int n = 0; n < N; ++n) {
+			for (int c = 0; c < C; ++c) {
+				ss << "\n=== N=" << n << ", C=" << c << " ===\n";
+				for (int h = 0; h < H; ++h) {
+					for (int w_ = 0; w_ < W; ++w_) {
+						int idx = n*C*H*W + c*H*W + h*W + w_;
+						float val = data->iloc(idx);
+						ss << val << "\t";
+					}
+					ss << "\n";
+				}
+			}
+		}
+		ss << std::endl;
+		return ss.str();
+	}
 
     void Tensor::print() const {
 
@@ -217,7 +244,8 @@ namespace ibatensor {
 
 		std::vector<int> size_new = {N, C, H_out, W_out};
 
-		return {Tensor(size_new, std::move(data_new.result)), std::move(data_new.max_inds)};
+		Tensor T_new = Tensor(size_new, std::move(data_new.result));
+		return {std::move(T_new), data_new.max_inds.release(), N * C * H_out * W_out};
 
 	}
 
@@ -313,6 +341,46 @@ namespace ibatensor {
 																						N_sigma, C_sigma, H_sigma, W_sigma,
 																						K, padding, stride);
 		std::vector<int> shape_new = {N_in, C_in, H_in, W_in};
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor conv2d_backwards_bias_wr_sigma(const Tensor &sigma) {
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = sigma.data->conv2d_backwards_bias_wr_sigma(sigma.data.get(), N_sigma, C_sigma, H_sigma, W_sigma, C_sigma);
+
+		std::vector<int> shape_new = {1, 1, 1, C_sigma};
+		return {shape_new, std::move(data_new)};
+	}
+
+
+	Tensor relu_backwards(const Tensor &sigma, const Tensor &in) {
+		int N_in= in.shape[0];
+		int C_in = (in.shape.size() >= 2) ? in.shape[1] : 1;
+		int H_in = (in.shape.size() >= 3) ? in.shape[2] : 1;
+		int W_in = (in.shape.size() >= 4) ? in.shape[3] : 1;
+
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = sigma.data->relu_backwards(sigma.data.get(), H_sigma, W_sigma, in.data.get(), H_in, W_in);
+		std::vector<int> shape_new = {N_in, C_in, H_in, W_in};
+		return {shape_new, std::move(data_new)};
+	}
+
+	Tensor bias_backwards(const Tensor &sigma) {
+		int N_sigma= sigma.shape[0];
+		int C_sigma = (sigma.shape.size() >= 2) ? sigma.shape[1] : 1;
+		int H_sigma = (sigma.shape.size() >= 3) ? sigma.shape[2] : 1;
+		int W_sigma = (sigma.shape.size() >= 4) ? sigma.shape[3] : 1;
+
+		std::unique_ptr<DeviceData> data_new = sigma.data->bias_backwards(sigma.data.get(), H_sigma, W_sigma);
+		std::vector<int> shape_new = {1, 1, 1, W_sigma};
 		return {shape_new, std::move(data_new)};
 	}
 
