@@ -499,7 +499,65 @@ __global__ void avg_pool_backward_wr_input_kernel(const float *sigma,
                                               int N_in, int C_in, int H_in, int W_in,
                                               int N_sigma, int C_sigma, int H_sigma, int W_sigma,
                                               int K, int P, int S, float *out);
+
+__global__ void conv2d_backwards_bias_wr_sigma_kernel(float *sigma, int sigma_N, int sigma_C, int sigma_H, int sigma_W,
+                                                int bias_W,
+                                                float *out);
+
+__global__ void relu_backwards_kernel(float *sigma, int sigma_H, int sigma_W,
+                                    float *in, int in_H, int in_W,
+                                    float *out);
+
+__global__ void bias_backwards_kernel(float *sigma, int sigma_H, int sigma_W,
+                                    float *out);
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
+
+std::unique_ptr<DeviceData> CudaData::conv2d_backwards_bias_wr_sigma(const DeviceData *sigma, int sigma_N, int sigma_C, int sigma_H, int sigma_W,
+                                            int bias_W) const {
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((sigma_W + TILE_SIZE - 1) / TILE_SIZE, (sigma_H + TILE_SIZE - 1) / TILE_SIZE, sigma_C * sigma_N);
+
+      float *out;
+      int size = sigma_C;
+
+      cudaMalloc(&out, size * sizeof(float));
+
+      conv2d_backwards_bias_wr_sigma_kernel<<<gridDim, blockDim>>>(sigma->getData(), sigma_N, sigma_C, sigma_H, sigma_W, sigma_C, out);
+
+      return std::make_unique<CudaData>(out, size);
+}
+
+std::unique_ptr<DeviceData> CudaData::relu_backwards(const DeviceData *sigma, int sigma_H, int sigma_W,
+                                    const DeviceData *in, int in_H, int in_W) const {
+
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((sigma_W + TILE_SIZE - 1) / TILE_SIZE, (sigma_H + TILE_SIZE - 1) / TILE_SIZE);
+
+      float *out;
+      int size = sigma_H * sigma_W;
+
+      cudaMalloc(&out, size * sizeof(float));
+
+      relu_backwards_kernel<<<gridDim, blockDim>>>(sigma->getData(), sigma_H, sigma_W, in->getData(), in_H, in_W, out);
+
+      return std::make_unique<CudaData>(out, size);
+
+}
+
+std::unique_ptr<DeviceData> CudaData::bias_backwards(const DeviceData *sigma, int sigma_H, int sigma_W) const {
+      dim3 blockDim(TILE_SIZE, TILE_SIZE);
+      dim3 gridDim((sigma_W + TILE_SIZE - 1) / TILE_SIZE, (sigma_H + TILE_SIZE - 1) / TILE_SIZE);
+
+      float *out;
+      int size = sigma_W;
+      cudaMalloc(&out, size * sizeof(float));
+
+      bias_backwards_kernel<<<gridDim, blockDim>>>(sigma->getData(), sigma_H, sigma_W, out);
+
+      return std::make_unique<CudaData>(out, size);
+
+}
+
 std::unique_ptr<DeviceData> CudaData::conv2d_backward_wr_kernel(const DeviceData *sigma,
                                             int C_k, int K, int H_in, int W_in, int C_in, int C_sigma, int H_sigma, int W_sigma, int P, int S, int N) const {
 
@@ -709,5 +767,48 @@ __global__ void avg_pool_backward_wr_input_kernel(const float *sigma,
       }
       out[out_n * C_in * H_in * W_in + out_c * H_in * W_in + out_y * W_in + out_x] = grad_val;
 
+
+}
+
+__global__ void conv2d_backwards_bias_wr_sigma_kernel(float *sigma, int sigma_N, int sigma_C, int sigma_H, int sigma_W,
+                                                int bias_W,
+                                                float *out) {
+      int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+      int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+      int out_c = blockIdx.z % sigma_C;
+      int out_n = blockIdx.z / sigma_C;
+
+      if (out_x >= sigma_W || out_y >= sigma_H || out_x < 0 || out_y < 0) {
+            return;
+      }
+
+      atomicAdd(&out[out_c], sigma[out_n * sigma_N * sigma_C * sigma_H * sigma_W + out_c * sigma_H * sigma_W + out_y * sigma_W + out_x]);
+}
+
+__global__ void relu_backwards_kernel(float *sigma, int sigma_H, int sigma_W,
+                                    float *in, int in_H, int in_W,
+                                    float *out) {
+      int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+      int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+      if (out_x >= sigma_W || out_y >= sigma_H || out_x < 0 || out_y < 0) {
+            return;
+      }
+
+      if (in[out_y * in_W + out_x] == 0) {
+            out[out_y * in_W + out_x] = 0;
+      } else {
+            out[out_y * in_W + out_x] = sigma[out_y * in_W + out_x];
+      }
+}
+
+__global__ void bias_backwards_kernel(float *sigma, int sigma_H, int sigma_W,
+                                    float *out) {
+      int out_x = blockIdx.x * blockDim.x + threadIdx.x;
+      int out_y = blockIdx.y * blockDim.y + threadIdx.y;
+      if (out_x >= sigma_W || out_y >= sigma_H || out_x < 0 || out_y < 0) {
+            return;
+      }
+
+      atomicAdd(&out[out_x], sigma[out_y * sigma_W + out_x]);
 
 }

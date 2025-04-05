@@ -73,6 +73,16 @@ public:
                                                                 int N_sigma, int C_sigma, int H_sigma, int W_sigma,
                                                                 int K, int P, int S) const;
 
+    std::unique_ptr<DeviceData> conv2d_backwards_bias_wr_sigma(const DeviceData *sigma, int sigma_N, int sigma_C, int sigma_H, int sigma_W,
+                                                int bias_W) const;
+
+    std::unique_ptr<DeviceData> relu_backwards(const DeviceData *sigma, int sigma_H, int sigma_W,
+                                        const DeviceData *in, int in_H, int in_W) const;
+
+    std::unique_ptr<DeviceData> bias_backwards(const DeviceData *sigma, int sigma_H, int sigma_W) const;
+
+    // ------------------------------------------------- Matrix Ops ---------------
+
 };
 
 

@@ -1,3 +1,4 @@
+/*
 //
 // Created by ianzh on 3/12/2025.
 //
@@ -11,6 +12,7 @@ CPUData::CPUData(const std::vector<float> &data_to_copy) : CPUData(data_to_copy.
     int i = 0;
     for (auto it = data_to_copy.begin(); it != data_to_copy.end(); ++it) {
         head[i] = *it;
+
         ++i;
     }
 }
@@ -148,3 +150,4 @@ std::unique_ptr<DeviceData> CPUData::conv2d_backward_wr_input(const DeviceData *
     return std::make_unique<CPUData> (nullptr, 0);
 }
 
+*/
