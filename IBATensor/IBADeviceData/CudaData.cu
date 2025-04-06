@@ -98,6 +98,7 @@ __host__ DeviceData::max_pool_return max_pool_base(const float *in, int N, int C
                                                  int H, int W, int H_out, int W_out, int K, int P, int S);
 __host__ std::unique_ptr<DeviceData> mat_transpose_base(const float *in, int H, int W, int C, int N);
 __host__ std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, int C, int N);
+__host__ std::unique_ptr<DeviceData> softmax_base(const float *in, int C, int N);
 
 __global__ void avg_pool2d_kernel(const float *in, float *out, int N, int C_in, int H, int W, int H_out, int W_out, int K, int P, int S);
 // ------------------------------------------------- Matrix Ops -------------------------------------------------------
@@ -178,6 +179,11 @@ std::unique_ptr<DeviceData> CudaData::mat_transpose(int H, int W, int C, int N) 
 std::unique_ptr<DeviceData> CudaData::relu(int H, int W, int C, int N) const {
       return relu_base(head, H, W, C, N);
 }
+
+std::unique_ptr<DeviceData> CudaData::softmax(int H, int W) const {
+      return softmax_base(head, H, W);
+}
+
 // ------------------------------------------------ Kernels ------------------------------------------------------
 
 __global__ void set_index_kernel(float A[], int i, float val) {
@@ -363,6 +369,33 @@ __global__ void relu_kernel(const float *in, float * out, int H, int W, int C, i
 
 }
 
+__global__
+void softmax_kernel(const float* in, float* out, int H, int W)
+{
+    // Each block processes one row
+    int row = blockIdx.x;
+
+    // 1) Find the maximum value in this row (for numerical stability)
+    float max_val = -FLT_MAX;
+    for (int j = 0; j < W; j++) {
+        float val = in[row * W + j];
+        if (val > max_val) {
+            max_val = val;
+        }
+    }
+
+    // 2) Compute the sum of the exponentials of (value - max_val)
+    float sum_exp = 0.0f;
+    for (int j = 0; j < W; j++) {
+        sum_exp += expf(in[row * W + j] - max_val);
+    }
+
+    // 3) Write out the normalized exponentials
+    for (int j = 0; j < W; j++) {
+        out[row * W + j] = expf(in[row * W + j] - max_val) / sum_exp;
+    }
+}
+
 // -------------------------------------------------- Helpers --------------------------------------------------------
 
 __host__ std::unique_ptr<DeviceData> mat_mult_base(const CudaData *A, const CudaData *B,  int H, int shared_axis, int W, int N) {
@@ -449,6 +482,22 @@ __host__ std::unique_ptr<DeviceData> relu_base(const float *in, int H, int W, in
       relu_kernel<<<gridDim, blockDim>>>(in, out, H, W, C, N);
 
       return std::make_unique<CudaData>(out, size);
+}
+
+std::unique_ptr<DeviceData> softmax_base(const float *in, int H, int W)
+{
+    int totalSize = H * W;
+    float *out = nullptr;
+    cudaMalloc(&out, totalSize * sizeof(float));
+
+    // We launch H blocks (one per row) with 1 thread each:
+    dim3 gridDim(H);
+    dim3 blockDim(1);
+
+    softmax_kernel<<<gridDim, blockDim>>>(in, out, H, W);
+
+    // Return the result as a CudaData unique_ptr
+    return std::make_unique<CudaData>(out, totalSize);
 }
 
 __host__ std::unique_ptr<DeviceData> elem_wise(const CudaData *A, const CudaData *B, Operation o, int B_grouping, int B_stride) {

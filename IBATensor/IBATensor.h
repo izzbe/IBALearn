@@ -42,14 +42,13 @@ namespace ibatensor {
         Tensor operator-(const Tensor &other) const; //element wise subtraction
         Tensor add_bias_for_conv2d(const Tensor &bias) const;
         Tensor ReLu() const;
+        Tensor softmax() const;
         Tensor conv2d(const Tensor &kernel, int padding, int stride) const;
         Tensor avg_pool(int K, int padding, int stride) const;
 
 
         max_pool_tensor_return max_pool(int K, int padding, int stride) const;
         Tensor mat_transpose() const;
-
-
 
     };
 

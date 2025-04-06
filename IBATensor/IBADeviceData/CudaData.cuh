@@ -55,6 +55,9 @@ public:
 
     std::unique_ptr<DeviceData> relu(int H, int W, int C, int N) const;
 
+    std::unique_ptr<DeviceData> softmax(int H, int W) const;
+
+
     // ------------------------------------------------------------------- BACKWARDS -------------------------------------------------------------
 
     std::unique_ptr<DeviceData> conv2d_backward_wr_kernel(const DeviceData *sigma,

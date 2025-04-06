@@ -75,6 +75,8 @@ PYBIND11_MODULE(ibatensor, m) {
              "Add a bias Tensor for conv2d.")
         .def("relu", &ibatensor::Tensor::ReLu,
              "Apply ReLU activation.")
+        .def("softmax", &ibatensor::Tensor::softmax, 
+             "Compute the softmax along the last dimension.")
         .def("conv2d", &ibatensor::Tensor::conv2d,
              py::arg("kernel"), py::arg("padding"), py::arg("stride"),
              "Perform a 2D convolution with the given kernel, padding, and stride.")

@@ -190,6 +190,18 @@ namespace ibatensor {
 		return {shape_new , std::move(data_new)};
 	}
 
+	Tensor Tensor::softmax() const {
+		if (shape.size() != 4) {
+			throw std::runtime_error("Softmax must be shaped (H, W, C=1, N=1)");
+		}
+		int H = shape[2];
+		int W = shape[3];
+		std::unique_ptr<DeviceData> data_new = data->softmax(H, W);
+
+		Tensor out({shape[0],shape[1],H,W}, std::move(data_new));
+		return out;
+	}
+
 	Tensor Tensor::conv2d(const Tensor &kernel, int padding, int stride) const {
 		int N = this->shape[0];
 		int C = (this->shape.size() >= 2) ? this->shape[1] : 1;

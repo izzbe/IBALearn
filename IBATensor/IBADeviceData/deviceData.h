@@ -39,6 +39,8 @@ public:
 
     virtual std::unique_ptr<DeviceData> relu(int H, int W, int C, int N) const = 0;
 
+    virtual std::unique_ptr<DeviceData> softmax(int H, int W) const = 0;
+
     virtual std::unique_ptr<DeviceData> conv2d_backward_wr_kernel(const DeviceData *sigma,
                                             int C_k, int K, int H_in, int W_in, int C_in, int C_sigma, int H_sigma, int W_sigma, int P, int S, int N) const = 0;
 
